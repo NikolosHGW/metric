@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	UPDATE = iota
-	METRIC_TYPE
-	METRIC_NAME
-	METRIC_VALUE
+	Update = iota
+	MetricType
+	MetricName
+	MetricValue
 )
 
 const (

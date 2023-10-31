@@ -37,8 +37,8 @@ func CheckTypeAndValueMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := util.SliceStrings(strings.Split(r.URL.Path, "/"), 0)
 
-		isCounterType := util.CheckCounterType(parts[util.METRIC_TYPE], parts[util.METRIC_VALUE])
-		isGaugeType := util.CheckGaugeType(parts[util.METRIC_TYPE], parts[util.METRIC_VALUE])
+		isCounterType := util.CheckCounterType(parts[util.MetricType], parts[util.MetricValue])
+		isGaugeType := util.CheckGaugeType(parts[util.MetricType], parts[util.MetricValue])
 
 		if !isCounterType && !isGaugeType {
 			w.WriteHeader(http.StatusBadRequest)
