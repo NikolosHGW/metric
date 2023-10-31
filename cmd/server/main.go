@@ -15,5 +15,9 @@ func main() {
 }
 
 func run() error {
-	return http.ListenAndServe(":8080", util.MiddlewareConveyor(http.HandlerFunc(handlers.PostHandle), middlewares.CheckPostMiddleware))
+	mux := http.NewServeMux()
+
+	mux.Handle("/update/", util.MiddlewareConveyor(http.HandlerFunc(handlers.PostHandle), middlewares.CheckPostMiddleware))
+
+	return http.ListenAndServe(":8080", mux)
 }
