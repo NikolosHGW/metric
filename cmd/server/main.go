@@ -24,9 +24,9 @@ func run() error {
 		"/update/",
 		util.MiddlewareConveyor(
 			http.HandlerFunc(handlers.PostHandle(strg)),
-			middlewares.CheckPostMiddleware,
-			middlewares.CheckMetricNameMiddleware,
 			middlewares.CheckTypeAndValueMiddleware,
+			middlewares.CheckMetricNameMiddleware,
+			middlewares.CheckPostMiddleware,
 		),
 	)
 
