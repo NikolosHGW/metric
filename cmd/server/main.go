@@ -5,6 +5,7 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/handlers"
 	"github.com/NikolosHGW/metric/internal/middlewares"
+	"github.com/NikolosHGW/metric/internal/storage"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
@@ -17,7 +18,18 @@ func main() {
 func run() error {
 	mux := http.NewServeMux()
 
-	mux.Handle("/update/", util.MiddlewareConveyor(http.HandlerFunc(handlers.PostHandle), middlewares.CheckPostMiddleware))
+	strg := storage.InitStorage()
+
+	mux.Handle(
+		"/update/",
+		util.MiddlewareConveyor(
+			http.HandlerFunc(handlers.PostHandle(strg)),
+			middlewares.CheckPostMiddleware,
+			middlewares.CheckHeaderMiddleware,
+			middlewares.CheckMetricNameMiddleware,
+			middlewares.CheckTypeAndValueMiddleware,
+		),
+	)
 
 	return http.ListenAndServe(":8080", mux)
 }
