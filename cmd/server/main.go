@@ -25,7 +25,6 @@ func run() error {
 		util.MiddlewareConveyor(
 			http.HandlerFunc(handlers.PostHandle(strg)),
 			middlewares.CheckPostMiddleware,
-			middlewares.CheckHeaderMiddleware,
 			middlewares.CheckMetricNameMiddleware,
 			middlewares.CheckTypeAndValueMiddleware,
 		),

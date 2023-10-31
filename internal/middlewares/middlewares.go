@@ -19,20 +19,6 @@ func CheckPostMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func CheckHeaderMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header := r.Header.Get("Content-Type")
-
-		if header != "text/plain" {
-			w.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 func CheckMetricNameMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := util.SliceStrings(strings.Split(r.URL.Path, "/"), 0)
