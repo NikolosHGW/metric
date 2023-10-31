@@ -13,8 +13,8 @@ const (
 )
 
 const (
-	GAUGE_TYPE   = "gauge"
-	COUNTER_TYPE = "counter"
+	GaugeType   = "gauge"
+	CounterType = "counter"
 )
 
 type middleware func(http.Handler) http.Handler
@@ -33,7 +33,7 @@ func CheckGaugeType(metricType string, metricValue string) bool {
 		return false
 	}
 
-	return metricType == GAUGE_TYPE
+	return metricType == GaugeType
 }
 
 func CheckCounterType(metricType string, metricValue string) bool {
@@ -42,7 +42,7 @@ func CheckCounterType(metricType string, metricValue string) bool {
 		return false
 	}
 
-	return metricType == COUNTER_TYPE
+	return metricType == CounterType
 }
 
 func SliceStrings(strings []string, i int) []string {
