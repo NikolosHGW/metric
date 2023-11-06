@@ -34,7 +34,7 @@ func SendMetrics(m metrics.ClientMetrics) {
 
 			resp, err := http.Post(adrs, "text/plain", nil)
 			if err != nil {
-				return
+				continue
 			}
 			resp.Body.Close()
 		}
