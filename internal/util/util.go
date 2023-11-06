@@ -16,6 +16,38 @@ const (
 	CounterType = "counter"
 )
 
+const (
+	Alloc         = "Alloc"
+	BuckHashSys   = "BuckHashSys"
+	Frees         = "Frees"
+	GCCPUFraction = "GCCPUFraction"
+	GCSys         = "GCSys"
+	HeapAlloc     = "HeapAlloc"
+	HeapIdle      = "HeapIdle"
+	HeapInuse     = "HeapInuse"
+	HeapObjects   = "HeapObjects"
+	HeapReleased  = "HeapReleased"
+	HeapSys       = "HeapSys"
+	LastGC        = "LastGC"
+	Lookups       = "Lookups"
+	MCacheInuse   = "MCacheInuse"
+	MCacheSys     = "MCacheSys"
+	MSpanInuse    = "MSpanInuse"
+	MSpanSys      = "MSpanSys"
+	Mallocs       = "Mallocs"
+	NextGC        = "NextGC"
+	NumForcedGC   = "NumForcedGC"
+	NumGC         = "NumGC"
+	OtherSys      = "OtherSys"
+	PauseTotalNs  = "PauseTotalNs"
+	StackInuse    = "StackInuse"
+	StackSys      = "StackSys"
+	Sys           = "Sys"
+	TotalAlloc    = "TotalAlloc"
+	PollCount     = "PollCount"
+	RandomValue   = "RandomValue"
+)
+
 type Gauge float64
 type Counter int64
 
@@ -43,4 +75,38 @@ func SliceStrings(strings []string, i int) []string {
 	}
 
 	return strings
+}
+
+func GetMetricTypeMap() map[string]string {
+	return map[string]string{
+		Alloc:         GaugeType,
+		BuckHashSys:   GaugeType,
+		Frees:         GaugeType,
+		GCCPUFraction: GaugeType,
+		GCSys:         GaugeType,
+		HeapAlloc:     GaugeType,
+		HeapIdle:      GaugeType,
+		HeapInuse:     GaugeType,
+		HeapObjects:   GaugeType,
+		HeapReleased:  GaugeType,
+		HeapSys:       GaugeType,
+		LastGC:        GaugeType,
+		Lookups:       GaugeType,
+		MCacheInuse:   GaugeType,
+		MCacheSys:     GaugeType,
+		MSpanInuse:    GaugeType,
+		MSpanSys:      GaugeType,
+		Mallocs:       GaugeType,
+		NextGC:        GaugeType,
+		NumForcedGC:   GaugeType,
+		NumGC:         GaugeType,
+		OtherSys:      GaugeType,
+		PauseTotalNs:  GaugeType,
+		StackInuse:    GaugeType,
+		StackSys:      GaugeType,
+		Sys:           GaugeType,
+		TotalAlloc:    GaugeType,
+		PollCount:     CounterType,
+		RandomValue:   GaugeType,
+	}
 }
