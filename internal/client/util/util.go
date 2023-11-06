@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,37 +27,42 @@ func CollectMetrics(m metrics.ClientMetrics) {
 
 func SendMetrics(m metrics.ClientMetrics) {
 	metricTypeMap := util.GetMetricTypeMap()
-	sb := strings.Builder{}
 	for {
-		// fmt.Println(m.GetMetrics())
 		for k, v := range m.GetMetrics() {
-			fmt.Println(k, v)
-			gaugeValue, gaugeOk := v.(util.Gauge)
-			counterValue, counterOk := v.(util.Counter)
-			fmt.Println(gaugeOk, counterOk)
-			if gaugeOk || counterOk {
-				result := ""
-				if gaugeOk {
-					result = strconv.FormatFloat(float64(gaugeValue), 'f', -1, 64)
-				} else {
+			result := getStringValue(v)
+			adrs := getResultUrl(metricTypeMap[k], k, result)
 
-					result = strconv.Itoa(int(counterValue))
-				}
-				sb.WriteString("http://localhost:8080/")
-				sb.WriteString(metricTypeMap[k])
-				sb.WriteString("/")
-				sb.WriteString(k)
-				sb.WriteString("/")
-				sb.WriteString(result)
-
-				resp, _ := http.Post(sb.String(), "application/json", nil)
-				// if err != nil {
-				// 	return err
-				// }
-				resp.Body.Close()
+			resp, err := http.Post(adrs, "text/plain", nil)
+			if err != nil {
+				return
 			}
+			resp.Body.Close()
 		}
 
 		time.Sleep(reportInterval * time.Second)
 	}
+}
+
+func getStringValue(v interface{}) string {
+	switch v2 := v.(type) {
+	case util.Gauge:
+		return strconv.FormatFloat(float64(v2), 'f', -1, 64)
+	case util.Counter:
+		return strconv.Itoa(int(v2))
+	}
+
+	return ""
+}
+
+func getResultUrl(metricType string, metricName string, metricValue string) string {
+	sb := strings.Builder{}
+
+	sb.WriteString("http://localhost:8080/update/")
+	sb.WriteString(metricType)
+	sb.WriteString("/")
+	sb.WriteString(metricName)
+	sb.WriteString("/")
+	sb.WriteString(metricValue)
+
+	return sb.String()
 }
