@@ -1,7 +1,6 @@
 package util
 
 import (
-	"net/http"
 	"strconv"
 )
 
@@ -17,15 +16,8 @@ const (
 	CounterType = "counter"
 )
 
-type middleware func(http.Handler) http.Handler
-
-func MiddlewareConveyor(handler http.Handler, middlewares ...middleware) http.Handler {
-	for _, middleware := range middlewares {
-		handler = middleware(handler)
-	}
-
-	return handler
-}
+type Gauge float64
+type Counter int64
 
 func CheckGaugeType(metricType string, metricValue string) bool {
 	_, err := strconv.ParseFloat(metricValue, 64)

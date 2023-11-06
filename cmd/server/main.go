@@ -3,10 +3,10 @@ package main
 import (
 	"net/http"
 
-	"github.com/NikolosHGW/metric/internal/handlers"
-	"github.com/NikolosHGW/metric/internal/middlewares"
-	"github.com/NikolosHGW/metric/internal/storage"
-	"github.com/NikolosHGW/metric/internal/util"
+	"github.com/NikolosHGW/metric/internal/server/handlers"
+	"github.com/NikolosHGW/metric/internal/server/middlewares"
+	"github.com/NikolosHGW/metric/internal/server/storage"
+	"github.com/NikolosHGW/metric/internal/server/util"
 )
 
 func main() {

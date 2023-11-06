@@ -2,28 +2,27 @@ package storage
 
 import (
 	"errors"
+
+	"github.com/NikolosHGW/metric/internal/util"
 )
 
-type Gauge float64
-type Counter int64
-
 type MetricStorage interface {
-	GetGaugeMetric(string) (Gauge, error)
-	GetCounterMetric(string) (Counter, error)
-	SetGaugeMetric(string, Gauge)
-	SetCounterMetric(string, Counter)
+	GetGaugeMetric(string) (util.Gauge, error)
+	GetCounterMetric(string) (util.Counter, error)
+	SetGaugeMetric(string, util.Gauge)
+	SetCounterMetric(string, util.Counter)
 }
 
 type metricValue struct {
-	gauge   Gauge
-	counter Counter
+	gauge   util.Gauge
+	counter util.Counter
 }
 
 type MemStorage struct {
 	metrics map[string]metricValue
 }
 
-func (ms MemStorage) GetGaugeMetric(name string) (Gauge, error) {
+func (ms MemStorage) GetGaugeMetric(name string) (util.Gauge, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		return metric.gauge, nil
@@ -32,7 +31,7 @@ func (ms MemStorage) GetGaugeMetric(name string) (Gauge, error) {
 	return 0, errors.New("not found")
 }
 
-func (ms MemStorage) GetCounterMetric(name string) (Counter, error) {
+func (ms MemStorage) GetCounterMetric(name string) (util.Counter, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		return metric.counter, nil
@@ -41,7 +40,7 @@ func (ms MemStorage) GetCounterMetric(name string) (Counter, error) {
 	return 0, errors.New("not found")
 }
 
-func (ms *MemStorage) SetGaugeMetric(name string, value Gauge) {
+func (ms *MemStorage) SetGaugeMetric(name string, value util.Gauge) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.gauge = value
@@ -56,7 +55,7 @@ func (ms *MemStorage) SetGaugeMetric(name string, value Gauge) {
 	}
 }
 
-func (ms *MemStorage) SetCounterMetric(name string, value Counter) {
+func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.counter += value
