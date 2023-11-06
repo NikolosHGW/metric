@@ -70,6 +70,6 @@ func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 	}
 }
 
-func InitStorage() MetricStorage {
-	return &MemStorage{}
+func NewMemStorage() *MemStorage {
+	return new(MemStorage)
 }

@@ -18,7 +18,7 @@ func main() {
 func run() error {
 	mux := http.NewServeMux()
 
-	strg := storage.InitStorage()
+	strg := storage.NewMemStorage()
 
 	mux.Handle(
 		"/update/",
