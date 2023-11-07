@@ -23,6 +23,8 @@ func PostHandle(strg storage.MetricStorage) func(http.ResponseWriter, *http.Requ
 			strg.SetGaugeMetric(parts[util.MetricName], util.Gauge(value))
 		}
 
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Add("Content-Type", "charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 	}
 }
