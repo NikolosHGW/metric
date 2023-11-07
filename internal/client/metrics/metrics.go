@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"math/rand"
 	"runtime"
 
 	"github.com/NikolosHGW/metric/internal/util"
@@ -24,7 +25,7 @@ func (m *Metrics) IncPollCount() {
 }
 
 func (m *Metrics) UpdateRandomValue() {
-	m.RandomValue = 901.02
+	m.RandomValue = util.Gauge(rand.Float64())
 }
 
 func (m *Metrics) RefreshMetrics() {
