@@ -48,6 +48,14 @@ func TestPostHandle(t *testing.T) {
 				contentTypes: []string{"text/plain", "charset=utf-8"},
 			},
 		},
+		{
+			name: "положительный тест для метрики типа gauge",
+			url:  "/update/gauge/someMetric/527.2",
+			want: want{
+				code:         200,
+				contentTypes: []string{"text/plain", "charset=utf-8"},
+			},
+		},
 	}
 
 	for _, test := range tests {
