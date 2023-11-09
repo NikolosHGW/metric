@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NikolosHGW/metric/internal/client/metrics"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
@@ -15,7 +14,14 @@ const (
 	reportInterval = 10
 )
 
-func CollectMetrics(m metrics.ClientMetrics) {
+type ClientMetrics interface {
+	IncPollCount()
+	UpdateRandomValue()
+	RefreshMetrics()
+	GetMetrics() map[string]interface{}
+}
+
+func CollectMetrics(m ClientMetrics) {
 	for {
 		m.RefreshMetrics()
 		m.IncPollCount()
@@ -25,7 +31,7 @@ func CollectMetrics(m metrics.ClientMetrics) {
 	}
 }
 
-func SendMetrics(m metrics.ClientMetrics) {
+func SendMetrics(m ClientMetrics) {
 	metricTypeMap := util.GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
@@ -58,11 +64,17 @@ func getResultUrl(metricType string, metricName string, metricValue string) stri
 	sb := strings.Builder{}
 
 	sb.WriteString("http://localhost:8080/update/")
-	sb.WriteString(metricType)
-	sb.WriteString("/")
-	sb.WriteString(metricName)
-	sb.WriteString("/")
-	sb.WriteString(metricValue)
+	if metricType != "" {
+		sb.WriteString(metricType)
+		sb.WriteString("/")
+	}
+	if metricName != "" {
+		sb.WriteString(metricName)
+		sb.WriteString("/")
+	}
+	if metricValue != "" {
+		sb.WriteString(metricValue)
+	}
 
 	return sb.String()
 }

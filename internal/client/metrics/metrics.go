@@ -7,13 +7,6 @@ import (
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-type ClientMetrics interface {
-	IncPollCount()
-	UpdateRandomValue()
-	RefreshMetrics()
-	GetMetrics() map[string]interface{}
-}
-
 type Metrics struct {
 	runtime.MemStats
 	PollCount   util.Counter
