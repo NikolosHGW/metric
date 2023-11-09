@@ -70,7 +70,7 @@ func CheckCounterType(metricType string, metricValue string) bool {
 }
 
 func SliceStrings(strings []string, i int) []string {
-	if len(strings) != 0 && i < len(strings) {
+	if len(strings) != 0 && i < len(strings) && i >= 0 {
 		strings = append(strings[:i], strings[i+1:]...)
 	}
 
