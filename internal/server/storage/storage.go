@@ -6,13 +6,6 @@ import (
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-type MetricStorage interface {
-	GetGaugeMetric(string) (util.Gauge, error)
-	GetCounterMetric(string) (util.Counter, error)
-	SetGaugeMetric(string, util.Gauge)
-	SetCounterMetric(string, util.Counter)
-}
-
 type metricValue struct {
 	gauge   util.Gauge
 	counter util.Counter
