@@ -36,7 +36,7 @@ func SendMetrics(m ClientMetrics) {
 	for {
 		for k, v := range m.GetMetrics() {
 			result := getStringValue(v)
-			adrs := getResultUrl(metricTypeMap[k], k, result)
+			adrs := getResultURL(metricTypeMap[k], k, result)
 
 			resp, err := http.Post(adrs, "text/plain", nil)
 			if err != nil {
@@ -60,7 +60,7 @@ func getStringValue(v interface{}) string {
 	return ""
 }
 
-func getResultUrl(metricType string, metricName string, metricValue string) string {
+func getResultURL(metricType string, metricName string, metricValue string) string {
 	sb := strings.Builder{}
 
 	sb.WriteString("http://localhost:8080/update/")

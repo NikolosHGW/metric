@@ -46,7 +46,7 @@ func Test_getResultUrl(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := getResultUrl(tc.metricType, tc.metricName, tc.metricValue)
+			actual := getResultURL(tc.metricType, tc.metricName, tc.metricValue)
 			if actual != tc.expected {
 				t.Errorf("getResultUrl(%q, %q, %q) = %q; want %q", tc.metricType, tc.metricName, tc.metricValue, actual, tc.expected)
 			}
