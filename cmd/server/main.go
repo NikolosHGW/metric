@@ -6,7 +6,7 @@ import (
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/middlewares"
 	"github.com/NikolosHGW/metric/internal/server/storage"
-	"github.com/NikolosHGW/metric/internal/server/util"
+	"github.com/go-chi/chi"
 )
 
 func main() {
@@ -16,19 +16,22 @@ func main() {
 }
 
 func run() error {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
 	strg := storage.NewMemStorage()
 
-	mux.Handle(
-		"/update/",
-		util.MiddlewareConveyor(
-			http.HandlerFunc(handlers.PostHandle(strg)),
-			middlewares.CheckTypeAndValueMiddleware,
-			middlewares.CheckMetricNameMiddleware,
-			middlewares.CheckPostMiddleware,
-		),
-	)
+	r.Route("/", func(r chi.Router) {
+		r.Get("/", handlers.PostHandle((strg)))
+		r.Route("/update", func(r chi.Router) {
+			r.Use(middlewares.CheckMetricNameMiddleware)
+			r.Use(middlewares.CheckTypeAndValueMiddleware)
 
-	return http.ListenAndServe(":8080", mux)
+			r.Post("/{metricType}/{metricName}/{metricValue}", handlers.PostHandle(strg))
+		})
+		r.Route("/value", func(r chi.Router) {
+			r.Get("/{metricType}/{metricName}", handlers.PostHandle(strg))
+		})
+	})
+
+	return http.ListenAndServe(":8080", r)
 }

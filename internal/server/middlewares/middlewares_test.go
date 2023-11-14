@@ -14,50 +14,6 @@ func getFakeHandler() http.HandlerFunc {
 	})
 }
 
-func TestCheckPostMiddleware(t *testing.T) {
-	type want struct {
-		code int
-	}
-
-	tests := []struct {
-		name   string
-		url    string
-		method string
-		want   want
-	}{
-		{
-			name:   "положительный тест: метод POST",
-			url:    "/update/counter/someMetric/527",
-			method: http.MethodPost,
-			want: want{
-				code: http.StatusOK,
-			},
-		},
-		{
-			name:   "отрицительный тест: метод GET",
-			url:    "/update/counter/someMetric/527",
-			method: http.MethodGet,
-			want: want{
-				code: http.StatusMethodNotAllowed,
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, test.url, nil)
-			w := httptest.NewRecorder()
-
-			CheckPostMiddleware(getFakeHandler()).ServeHTTP(w, request)
-
-			res := w.Result()
-			defer res.Body.Close()
-
-			assert.Equal(t, test.want.code, res.StatusCode)
-		})
-	}
-}
-
 func TestCheckMetricNameMiddleware(t *testing.T) {
 	type want struct {
 		code int
