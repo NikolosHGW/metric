@@ -5,7 +5,7 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/middlewares"
-	"github.com/NikolosHGW/metric/internal/server/storage"
+	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 	"github.com/go-chi/chi"
 )
 
@@ -18,7 +18,7 @@ func main() {
 func run() error {
 	r := chi.NewRouter()
 
-	strg := storage.NewMemStorage()
+	strg := memory.NewMemStorage()
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handlers.PostHandle((strg)))

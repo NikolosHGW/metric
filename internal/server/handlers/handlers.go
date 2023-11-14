@@ -5,15 +5,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-type MetricStorage interface {
-	SetGaugeMetric(string, util.Gauge)
-	SetCounterMetric(string, util.Counter)
-}
-
-func PostHandle(strg MetricStorage) func(http.ResponseWriter, *http.Request) {
+func PostHandle(strg storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parts := util.SliceStrings(strings.Split(r.URL.Path, "/"), 0)
 
