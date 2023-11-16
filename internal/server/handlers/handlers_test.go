@@ -63,7 +63,7 @@ func TestPostHandle(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, test.url, nil)
 			w := httptest.NewRecorder()
 
-			PostHandle(strg)(w, request)
+			WithSetMetricHandle(strg)(w, request)
 
 			res := w.Result()
 			defer res.Body.Close()

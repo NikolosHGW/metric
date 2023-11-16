@@ -12,6 +12,6 @@ func InitUpdateRoutes(r chi.Router, strg storage.Storage) {
 		r.Use(middlewares.CheckMetricNameMiddleware)
 		r.Use(middlewares.CheckTypeAndValueMiddleware)
 
-		r.Post("/{metricType}/{metricName}/{metricValue}", handlers.PostHandle(strg))
+		r.Post("/{metricType}/{metricName}/{metricValue}", handlers.WithSetMetricHandle(strg))
 	})
 }

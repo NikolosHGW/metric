@@ -8,6 +8,6 @@ import (
 
 func InitValueRoutes(r chi.Router, strg storage.Storage) {
 	r.Route("/value", func(r chi.Router) {
-		r.Get("/{metricType}/{metricName}", handlers.PostHandle(strg))
+		r.Get("/{metricType}/{metricName}", handlers.WithGetValueMetricHandle(strg))
 	})
 }
