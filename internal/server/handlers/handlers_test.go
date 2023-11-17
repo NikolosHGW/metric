@@ -27,7 +27,7 @@ func (sm StorageMock) SetCounterMetric(name string, value util.Counter) {
 
 }
 
-func TestPostHandle(t *testing.T) {
+func TestWithSetMetricHandle(t *testing.T) {
 	type want struct {
 		code         int
 		contentTypes []string

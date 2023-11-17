@@ -1,28 +1,33 @@
 package metric
 
 import (
-	"net/http"
+	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-func SetMetric(r *http.Request, strg storage.Storage) {
-	parts := util.SliceStrings(strings.Split(r.URL.Path, "/"), 0)
-
-	if parts[util.MetricType] == util.CounterType {
-		value, _ := strconv.ParseInt(parts[util.MetricValue], 10, 64)
-		strg.SetCounterMetric(parts[util.MetricName], util.Counter(value))
+func SetMetric(strg storage.Storage, metricType, metricName, metricValue string) {
+	if metricType == util.CounterType {
+		value, _ := strconv.ParseInt(metricValue, 10, 64)
+		strg.SetCounterMetric(metricName, util.Counter(value))
 	}
 
-	if parts[util.MetricType] == util.GaugeType {
-		value, _ := strconv.ParseFloat(parts[util.MetricValue], 64)
-		strg.SetGaugeMetric(parts[util.MetricName], util.Gauge(value))
+	if metricType == util.GaugeType {
+		value, _ := strconv.ParseFloat(metricValue, 64)
+		strg.SetGaugeMetric(metricName, util.Gauge(value))
 	}
 }
 
-func GetMetricValue() string {
-	return "12"
+func GetMetricValue(strg storage.Storage, metricType, metricName string) (string, error) {
+	if metricType == util.GaugeType {
+		metricValue, err := strg.GetGaugeMetric(metricName)
+
+		return fmt.Sprintf("%v", metricValue), err
+	}
+
+	metricValue, err := strg.GetCounterMetric(metricName)
+
+	return fmt.Sprintf("%v", metricValue), err
 }

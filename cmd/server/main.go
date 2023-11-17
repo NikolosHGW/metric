@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/NikolosHGW/metric/internal/server/routes"
@@ -9,7 +11,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		panic(err)
+		log.Fatal(fmt.Errorf("server/main run_ListenAndServe: %w", err))
 	}
 }
 
