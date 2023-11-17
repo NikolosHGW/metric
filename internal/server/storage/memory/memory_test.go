@@ -21,7 +21,7 @@ func TestMemStorage_GetGaugeMetric(t *testing.T) {
 	}{
 		{"положительный тест: достать существующую метрику foo", "foo", 42.1, nil},
 		{"положительный тест: достать существующую метрику bar", "bar", 100.01, nil},
-		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("gauge metric not found")},
+		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("gauge metric baz not found")},
 	}
 
 	for _, tc := range testCases {
@@ -46,7 +46,7 @@ func TestMemStorage_GetCounterMetric(t *testing.T) {
 	}{
 		{"положительный тест: достать существующую метрику foo", "foo", 42, nil},
 		{"положительный тест: достать существующую метрику bar", "bar", 100, nil},
-		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("counter metric not found")},
+		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("counter metric baz not found")},
 	}
 
 	for _, tc := range testCases {

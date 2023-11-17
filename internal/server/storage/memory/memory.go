@@ -1,7 +1,7 @@
 package memory
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/NikolosHGW/metric/internal/util"
 )
@@ -21,7 +21,7 @@ func (ms MemStorage) GetGaugeMetric(name string) (util.Gauge, error) {
 		return metric.gauge, nil
 	}
 
-	return 0, errors.New("gauge metric not found")
+	return 0, fmt.Errorf("gauge metric %s not found", name)
 }
 
 func (ms MemStorage) GetCounterMetric(name string) (util.Counter, error) {
@@ -30,7 +30,7 @@ func (ms MemStorage) GetCounterMetric(name string) (util.Counter, error) {
 		return metric.counter, nil
 	}
 
-	return 0, errors.New("counter metric not found")
+	return 0, fmt.Errorf("counter metric %s not found", name)
 }
 
 func (ms *MemStorage) SetGaugeMetric(name string, value util.Gauge) {
