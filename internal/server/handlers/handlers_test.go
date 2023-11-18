@@ -212,3 +212,30 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 		})
 	}
 }
+
+func TestWithGetMetricsHandle(t *testing.T) {
+	ms := storageMock{}
+
+	r := chi.NewRouter()
+	r.Get("/", WithGetMetricsHandle(ms))
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+	assert.NoError(t, err)
+
+	client := ts.Client()
+	resp, err := client.Do(req)
+
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	assert.Contains(t, string(body), "<title>Список метрик</title>")
+	assert.Contains(t, string(body), "<h1>Список метрик</h1>")
+}

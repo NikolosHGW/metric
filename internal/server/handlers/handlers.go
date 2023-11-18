@@ -3,6 +3,9 @@ package handlers
 import (
 	"html/template"
 	"net/http"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/NikolosHGW/metric/internal/server/services/metric"
 	"github.com/NikolosHGW/metric/internal/server/storage"
@@ -47,7 +50,16 @@ func WithGetMetricsHandle(strg storage.Storage) func(http.ResponseWriter, *http.
 
 		metrics = util.SortMetrics(metrics)
 
-		tmpl, err := template.ParseFiles("../../internal/server/templates/list_metrics.tmpl")
+		rootDir, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}").Output()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		trimedRootDir := strings.TrimSpace(string(rootDir))
+		tmplPath := filepath.Join(trimedRootDir, "internal", "server", "templates", "list_metrics.tmpl")
+
+		tmpl, err := template.ParseFiles(tmplPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
