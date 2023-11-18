@@ -38,6 +38,10 @@ func (sm storageMock) SetCounterMetric(name string, value util.Counter) {
 
 }
 
+func (sm storageMock) GetAllMetrics() map[string]string {
+	return map[string]string{}
+}
+
 func TestWithSetMetricHandle(t *testing.T) {
 	type want struct {
 		code         int

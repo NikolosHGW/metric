@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"html/template"
 	"net/http"
 
 	"github.com/NikolosHGW/metric/internal/server/services/metric"
@@ -36,5 +37,23 @@ func WithGetValueMetricHandle(strg storage.Storage) func(http.ResponseWriter, *h
 		w.Header().Add("Content-Type", "charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(metricValue))
+	}
+}
+
+func WithGetMetricsHandle(strg storage.Storage) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		metrics := strg.GetAllMetrics()
+
+		tmpl, err := template.ParseFiles("../../internal/server/templates/list_metrics.tmpl")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = tmpl.Execute(w, metrics)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }

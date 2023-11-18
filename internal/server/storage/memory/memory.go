@@ -63,6 +63,20 @@ func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 	}
 }
 
+func (ms MemStorage) GetAllMetrics() map[string]string {
+	result := make(map[string]string, len(ms.metrics))
+
+	for k, v := range ms.metrics {
+		if v.counter != 0 {
+			result[k] = fmt.Sprintf("%v", v.counter)
+		} else {
+			result[k] = fmt.Sprintf("%v", v.gauge)
+		}
+	}
+
+	return result
+}
+
 func NewMemStorage() *MemStorage {
 	return new(MemStorage)
 }

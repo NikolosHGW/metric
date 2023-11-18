@@ -12,7 +12,7 @@ func InitRouter(strg storage.Storage) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Route("/", func(r chi.Router) {
-		r.Get("/", handlers.WithSetMetricHandle((strg)))
+		r.Get("/", handlers.WithGetMetricsHandle((strg)))
 
 		update.InitUpdateRoutes(r, strg)
 		value.InitValueRoutes(r, strg)
