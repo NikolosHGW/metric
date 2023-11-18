@@ -7,8 +7,8 @@
 <body>
     <h1>Список метрик</h1>
     <ul>
-        {{range $key, $value := .}}
-        <li>{{$key}}: {{$value}}</li>
+        {{range .}}
+        <li>{{.}}</li>
         {{end}}
     </ul>
 </body>

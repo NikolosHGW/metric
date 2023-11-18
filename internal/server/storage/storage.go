@@ -9,5 +9,5 @@ type Storage interface {
 	SetCounterMetric(string, util.Counter)
 	GetGaugeMetric(string) (util.Gauge, error)
 	GetCounterMetric(string) (util.Counter, error)
-	GetAllMetrics() map[string]string
+	GetAllMetrics() []string
 }

@@ -103,3 +103,38 @@ func TestMemStorage_SetCounterMetric(t *testing.T) {
 		})
 	}
 }
+
+func TestMemStorage_GetAllMetrics(t *testing.T) {
+	type data struct {
+		metricName  string
+		metricValue util.Gauge
+	}
+
+	testCases := []struct {
+		name     string
+		input    []data
+		expected []string
+	}{
+		{
+			name:     "положительный тест: с наполненным сторэджом",
+			input:    []data{{metricName: "foo", metricValue: 42}, {metricName: "bar", metricValue: 100}},
+			expected: []string{"foo: 42", "bar: 100"},
+		},
+		{
+			name:     "отрицательный тест: пустой сторэдж",
+			input:    []data{},
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ms := NewMemStorage()
+			for _, data := range tc.input {
+				ms.SetGaugeMetric(data.metricName, data.metricValue)
+			}
+			actual := ms.GetAllMetrics()
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}

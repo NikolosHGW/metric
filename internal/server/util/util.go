@@ -1,13 +1,17 @@
 package util
 
-import "net/http"
+import (
+	"sort"
+	"strings"
+)
 
-type middleware func(http.Handler) http.Handler
+func SortMetrics(metrics []string) []string {
+	sort.Slice(metrics, func(i, j int) bool {
+		k1 := strings.Split(metrics[i], ":")[0]
+		k2 := strings.Split(metrics[j], ":")[0]
 
-func MiddlewareConveyor(handler http.Handler, middlewares ...middleware) http.Handler {
-	for _, middleware := range middlewares {
-		handler = middleware(handler)
-	}
+		return k1 < k2
+	})
 
-	return handler
+	return metrics
 }

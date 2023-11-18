@@ -6,6 +6,7 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/server/services/metric"
 	"github.com/NikolosHGW/metric/internal/server/storage"
+	"github.com/NikolosHGW/metric/internal/server/util"
 	"github.com/go-chi/chi"
 )
 
@@ -43,6 +44,8 @@ func WithGetValueMetricHandle(strg storage.Storage) func(http.ResponseWriter, *h
 func WithGetMetricsHandle(strg storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metrics := strg.GetAllMetrics()
+
+		metrics = util.SortMetrics(metrics)
 
 		tmpl, err := template.ParseFiles("../../internal/server/templates/list_metrics.tmpl")
 		if err != nil {

@@ -38,8 +38,8 @@ func (sm storageMock) SetCounterMetric(name string, value util.Counter) {
 
 }
 
-func (sm storageMock) GetAllMetrics() map[string]string {
-	return map[string]string{}
+func (sm storageMock) GetAllMetrics() []string {
+	return []string{}
 }
 
 func TestWithSetMetricHandle(t *testing.T) {
