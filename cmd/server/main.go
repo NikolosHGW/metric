@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/routes"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 )
@@ -16,9 +17,13 @@ func main() {
 }
 
 func run() error {
+	config := config.NewConfig()
+
+	parseFlags(&config.Endpoint)
+
 	strg := memory.NewMemStorage()
 
 	r := routes.InitRouter(strg)
 
-	return http.ListenAndServe(":8080", r)
+	return http.ListenAndServe(config.Endpoint.String(), r)
 }
