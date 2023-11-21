@@ -9,11 +9,6 @@ import (
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-const (
-	pollInterval   = 2
-	reportInterval = 10
-)
-
 type ClientMetrics interface {
 	IncPollCount()
 	UpdateRandomValue()
@@ -21,22 +16,22 @@ type ClientMetrics interface {
 	GetMetrics() map[string]interface{}
 }
 
-func CollectMetrics(m ClientMetrics) {
+func CollectMetrics(m ClientMetrics, pollInterval int) {
 	for {
 		m.RefreshMetrics()
 		m.IncPollCount()
 		m.UpdateRandomValue()
 
-		time.Sleep(pollInterval * time.Second)
+		time.Sleep(time.Duration(pollInterval) * time.Second)
 	}
 }
 
-func SendMetrics(m ClientMetrics) {
+func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 	metricTypeMap := util.GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
 			result := getStringValue(v)
-			adrs := getResultURL(metricTypeMap[k], k, result)
+			adrs := getResultURL(host, metricTypeMap[k], k, result)
 
 			resp, err := http.Post(adrs, "text/plain", nil)
 			if err != nil {
@@ -45,7 +40,7 @@ func SendMetrics(m ClientMetrics) {
 			resp.Body.Close()
 		}
 
-		time.Sleep(reportInterval * time.Second)
+		time.Sleep(time.Duration(reportInterval) * time.Second)
 	}
 }
 
@@ -60,10 +55,12 @@ func getStringValue(v interface{}) string {
 	return ""
 }
 
-func getResultURL(metricType string, metricName string, metricValue string) string {
+func getResultURL(host, metricType, metricName, metricValue string) string {
 	sb := strings.Builder{}
 
-	sb.WriteString("http://localhost:8080/update/")
+	sb.WriteString("http://")
+	sb.WriteString(host)
+	sb.WriteString("/update/")
 	if metricType != "" {
 		sb.WriteString(metricType)
 		sb.WriteString("/")
