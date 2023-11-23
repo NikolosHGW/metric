@@ -2,7 +2,14 @@ package main
 
 import "flag"
 
-func parseFlags(addr flag.Value) {
-	flag.Var(addr, "a", "net address host:port")
+type ServerConfig interface {
+	GetEndpointObject() flag.Value
+	InitAdress()
+}
+
+func parseFlags(cfg ServerConfig) {
+	flag.Var(cfg.GetEndpointObject(), "a", "net address host:port")
 	flag.Parse()
+
+	cfg.InitAdress()
 }

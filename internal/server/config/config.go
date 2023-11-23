@@ -2,9 +2,12 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/caarlos0/env"
 )
 
 type netAddress struct {
@@ -33,6 +36,19 @@ func (na *netAddress) Set(flagValue string) error {
 
 type config struct {
 	Endpoint netAddress
+	Address  string `env:"ADDRESS"`
+}
+
+func (c *config) GetEndpointObject() flag.Value {
+	return &c.Endpoint
+}
+
+func (c *config) InitAdress() {
+	c.Address = c.Endpoint.String()
+}
+
+func (c *config) InitEnv() {
+	env.Parse(c)
 }
 
 func NewConfig() *config {

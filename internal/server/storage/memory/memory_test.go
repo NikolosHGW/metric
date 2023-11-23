@@ -118,7 +118,7 @@ func TestMemStorage_GetAllMetrics(t *testing.T) {
 		{
 			name:     "положительный тест: с наполненным сторэджом",
 			input:    []data{{metricName: "foo", metricValue: 42}, {metricName: "bar", metricValue: 100}},
-			expected: []string{"foo: 42", "bar: 100"},
+			expected: []string{"bar: 100", "foo: 42"},
 		},
 		{
 			name:     "отрицательный тест: пустой сторэдж",

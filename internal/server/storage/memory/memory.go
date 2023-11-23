@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/NikolosHGW/metric/internal/util"
 )
@@ -66,8 +67,18 @@ func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 func (ms MemStorage) GetAllMetrics() []string {
 	result := make([]string, len(ms.metrics))
 
+	keys := make([]string, 0, len(ms.metrics))
+	for k := range ms.metrics {
+		keys = append(keys, k)
+	}
+
+	// Сортируем срез ключей
+	sort.Strings(keys)
+
+	// Итерируем по отсортированному срезу и заполняем результат
 	i := 0
-	for k, v := range ms.metrics {
+	for _, k := range keys {
+		v := ms.metrics[k]
 		if v.counter != 0 {
 			result[i] = fmt.Sprintf("%v: %v", k, v.counter)
 		} else {
