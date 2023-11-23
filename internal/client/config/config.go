@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/caarlos0/env"
 )
@@ -37,20 +36,20 @@ func (na *netAddress) Set(flagValue string) error {
 
 type config struct {
 	Endpoint       netAddress
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	Address        string        `env:"ADDRESS"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
+	ReportInterval int    `env:"REPORT_INTERVAL"`
+	Address        string `env:"ADDRESS"`
 }
 
 func (c *config) GetEndpointObject() flag.Value {
 	return &c.Endpoint
 }
 
-func (c *config) GetPollIntervalPointer() *time.Duration {
+func (c *config) GetPollIntervalPointer() *int {
 	return &c.PollInterval
 }
 
-func (c *config) GetReportIntervalPointer() *time.Duration {
+func (c *config) GetReportIntervalPointer() *int {
 	return &c.ReportInterval
 }
 
