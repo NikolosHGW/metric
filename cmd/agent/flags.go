@@ -2,14 +2,22 @@ package main
 
 import (
 	"flag"
-
-	"github.com/NikolosHGW/metric/internal/client/config"
+	"time"
 )
 
-func parseFlags(configFlags *config.Flags) {
-	flag.Var(&configFlags.Endpoint, "a", "net address host:port")
-	flag.IntVar(&configFlags.ReportInterval, "r", 10, "report seconds interval")
-	flag.IntVar(&configFlags.PollInterval, "p", 2, "poll seconds interval")
+type ClientConfig interface {
+	GetEndpointObject() flag.Value
+	GetPollIntervalPointer() *time.Duration
+	GetReportIntervalPointer() *time.Duration
+	InitAdress()
+}
+
+func parseFlags(cfg ClientConfig) {
+	flag.Var(cfg.GetEndpointObject(), "a", "net address host:port")
+	flag.DurationVar(cfg.GetReportIntervalPointer(), "r", 10*time.Second, "report seconds interval")
+	flag.DurationVar(cfg.GetPollIntervalPointer(), "p", 2*time.Second, "poll seconds interval")
 
 	flag.Parse()
+
+	cfg.InitAdress()
 }

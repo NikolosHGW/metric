@@ -11,12 +11,13 @@ import (
 func main() {
 	config := config.NewConfig()
 
-	parseFlags(&config.Flags)
+	parseFlags(config)
+	config.InitEnv()
 
 	stats := metrics.NewMetrics()
 
-	go util.CollectMetrics(stats, config.Flags.PollInterval)
-	go util.SendMetrics(stats, config.Flags.ReportInterval, config.Flags.Endpoint.String())
+	go util.CollectMetrics(stats, config.PollInterval)
+	go util.SendMetrics(stats, config.ReportInterval, config.Address)
 
 	for {
 		time.Sleep(10 * time.Second)

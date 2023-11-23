@@ -2,9 +2,13 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/caarlos0/env"
 )
 
 type netAddress struct {
@@ -31,20 +35,35 @@ func (na *netAddress) Set(flagValue string) error {
 	return nil
 }
 
-type Flags struct {
+type config struct {
 	Endpoint       netAddress
-	PollInterval   int
-	ReportInterval int
+	PollInterval   time.Duration `env:"POLL_INTERVAL"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
+	Address        string        `env:"ADDRESS"`
 }
 
-type config struct {
-	Flags Flags
+func (c *config) GetEndpointObject() flag.Value {
+	return &c.Endpoint
+}
+
+func (c *config) GetPollIntervalPointer() *time.Duration {
+	return &c.PollInterval
+}
+
+func (c *config) GetReportIntervalPointer() *time.Duration {
+	return &c.ReportInterval
+}
+
+func (c *config) InitAdress() {
+	c.Address = c.Endpoint.String()
+}
+
+func (c *config) InitEnv() {
+	env.Parse(c)
 }
 
 func NewConfig() *config {
 	return &config{
-		Flags: Flags{
-			Endpoint: netAddress{Host: "localhost", Port: 8080},
-		},
+		Endpoint: netAddress{Host: "localhost", Port: 8080},
 	}
 }

@@ -16,17 +16,17 @@ type ClientMetrics interface {
 	GetMetrics() map[string]interface{}
 }
 
-func CollectMetrics(m ClientMetrics, pollInterval int) {
+func CollectMetrics(m ClientMetrics, pollInterval time.Duration) {
 	for {
 		m.RefreshMetrics()
 		m.IncPollCount()
 		m.UpdateRandomValue()
 
-		time.Sleep(time.Duration(pollInterval) * time.Second)
+		time.Sleep(pollInterval)
 	}
 }
 
-func SendMetrics(m ClientMetrics, reportInterval int, host string) {
+func SendMetrics(m ClientMetrics, reportInterval time.Duration, host string) {
 	metricTypeMap := util.GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
@@ -40,7 +40,7 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 			resp.Body.Close()
 		}
 
-		time.Sleep(time.Duration(reportInterval) * time.Second)
+		time.Sleep(reportInterval)
 	}
 }
 
