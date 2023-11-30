@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/NikolosHGW/metric/internal/server/config"
+	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/routes"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 )
@@ -23,8 +24,9 @@ func run() error {
 	config.InitEnv()
 
 	strg := memory.NewMemStorage()
+	handler := handlers.NewHandler(strg)
 
-	r := routes.InitRouter(strg)
+	r := routes.InitRouter(handler)
 
 	return http.ListenAndServe(config.Address, r)
 }

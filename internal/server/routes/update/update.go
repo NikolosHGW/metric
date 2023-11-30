@@ -1,17 +1,17 @@
 package update
 
 import (
-	"github.com/NikolosHGW/metric/internal/server/handlers"
+	"net/http"
+
 	"github.com/NikolosHGW/metric/internal/server/middlewares"
-	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/go-chi/chi"
 )
 
-func InitUpdateRoutes(r chi.Router, strg storage.Storage) {
+func InitUpdateRoutes(r chi.Router, h http.HandlerFunc) {
 	r.Route("/update", func(r chi.Router) {
 		r.Use(middlewares.CheckMetricNameMiddleware)
 		r.Use(middlewares.CheckTypeAndValueMiddleware)
 
-		r.Post("/{metricType}/{metricName}/{metricValue}", handlers.WithSetMetricHandle(strg))
+		r.Post("/{metricType}/{metricName}/{metricValue}", h)
 	})
 }

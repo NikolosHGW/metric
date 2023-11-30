@@ -1,13 +1,13 @@
 package value
 
 import (
-	"github.com/NikolosHGW/metric/internal/server/handlers"
-	"github.com/NikolosHGW/metric/internal/server/storage"
+	"net/http"
+
 	"github.com/go-chi/chi"
 )
 
-func InitValueRoutes(r chi.Router, strg storage.Storage) {
+func InitValueRoutes(r chi.Router, h http.HandlerFunc) {
 	r.Route("/value", func(r chi.Router) {
-		r.Get("/{metricType}/{metricName}", handlers.WithGetValueMetricHandle(strg))
+		r.Get("/{metricType}/{metricName}", h)
 	})
 }

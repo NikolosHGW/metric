@@ -78,7 +78,8 @@ func TestWithSetMetricHandle(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, test.url, nil)
 			w := httptest.NewRecorder()
 
-			WithSetMetricHandle(strg)(w, request)
+			handler := NewHandler(strg)
+			handler.SetMetric(w, request)
 
 			res := w.Result()
 			defer res.Body.Close()
@@ -95,7 +96,9 @@ func TestWithSetMetricHandle2(t *testing.T) {
 
 	r := chi.NewRouter()
 
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", WithSetMetricHandle(strg))
+	handler := NewHandler(strg)
+
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.SetMetric)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -147,10 +150,10 @@ func TestWithSetMetricHandle2(t *testing.T) {
 func TestWithGetValueMetricHandle(t *testing.T) {
 	strg := &storageMock{}
 
-	handler := WithGetValueMetricHandle(strg)
+	handler := NewHandler(strg)
 
 	r := chi.NewRouter()
-	r.Get("/{metricType}/{metricName}", handler)
+	r.Get("/{metricType}/{metricName}", handler.GetValueMetric)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -216,8 +219,10 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 func TestWithGetMetricsHandle(t *testing.T) {
 	ms := storageMock{}
 
+	handler := NewHandler(ms)
+
 	r := chi.NewRouter()
-	r.Get("/", WithGetMetricsHandle(ms))
+	r.Get("/", handler.GetMetrics)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

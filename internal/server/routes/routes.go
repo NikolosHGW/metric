@@ -1,21 +1,27 @@
 package routes
 
 import (
-	"github.com/NikolosHGW/metric/internal/server/handlers"
+	"net/http"
+
 	"github.com/NikolosHGW/metric/internal/server/routes/update"
 	"github.com/NikolosHGW/metric/internal/server/routes/value"
-	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/go-chi/chi"
 )
 
-func InitRouter(strg storage.Storage) *chi.Mux {
+type Handler interface {
+	SetMetric(http.ResponseWriter, *http.Request)
+	GetValueMetric(http.ResponseWriter, *http.Request)
+	GetMetrics(http.ResponseWriter, *http.Request)
+}
+
+func InitRouter(handler Handler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Route("/", func(r chi.Router) {
-		r.Get("/", handlers.WithGetMetricsHandle((strg)))
+		r.Get("/", handler.GetMetrics)
 
-		update.InitUpdateRoutes(r, strg)
-		value.InitValueRoutes(r, strg)
+		update.InitUpdateRoutes(r, handler.SetMetric)
+		value.InitValueRoutes(r, handler.GetValueMetric)
 	})
 
 	return r
