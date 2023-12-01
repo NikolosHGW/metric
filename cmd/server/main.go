@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/routes"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
@@ -18,10 +17,7 @@ func main() {
 }
 
 func run() error {
-	config := config.NewConfig()
-
-	parseFlags(config)
-	config.InitEnv()
+	config := NewConfig()
 
 	strg := memory.NewMemStorage()
 	handler := handlers.NewHandler(strg)
