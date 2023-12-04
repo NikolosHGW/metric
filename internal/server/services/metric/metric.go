@@ -4,30 +4,51 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-func SetMetric(strg storage.Storage, metricType, metricName, metricValue string) {
+type repository interface {
+	SetGaugeMetric(string, util.Gauge)
+	SetCounterMetric(string, util.Counter)
+	GetGaugeMetric(string) (util.Gauge, error)
+	GetCounterMetric(string) (util.Counter, error)
+	GetAllMetrics() []string
+}
+
+type MetricService struct {
+	strg repository
+}
+
+func NewMetricService(repo repository) *MetricService {
+	return &MetricService{
+		strg: repo,
+	}
+}
+
+func (ms MetricService) SetMetric(metricType, metricName, metricValue string) {
 	if metricType == util.CounterType {
 		value, _ := strconv.ParseInt(metricValue, 10, 64)
-		strg.SetCounterMetric(metricName, util.Counter(value))
+		ms.strg.SetCounterMetric(metricName, util.Counter(value))
 	}
 
 	if metricType == util.GaugeType {
 		value, _ := strconv.ParseFloat(metricValue, 64)
-		strg.SetGaugeMetric(metricName, util.Gauge(value))
+		ms.strg.SetGaugeMetric(metricName, util.Gauge(value))
 	}
 }
 
-func GetMetricValue(strg storage.Storage, metricType, metricName string) (string, error) {
+func (ms MetricService) GetMetricValue(metricType, metricName string) (string, error) {
 	if metricType == util.GaugeType {
-		metricValue, err := strg.GetGaugeMetric(metricName)
+		metricValue, err := ms.strg.GetGaugeMetric(metricName)
 
 		return fmt.Sprintf("%v", metricValue), err
 	}
 
-	metricValue, err := strg.GetCounterMetric(metricName)
+	metricValue, err := ms.strg.GetCounterMetric(metricName)
 
 	return fmt.Sprintf("%v", metricValue), err
+}
+
+func (ms MetricService) GetAllMetrics() []string {
+	return ms.strg.GetAllMetrics()
 }

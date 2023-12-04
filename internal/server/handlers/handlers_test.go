@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/NikolosHGW/metric/internal/server/services/metric"
 	"github.com/NikolosHGW/metric/internal/util"
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
@@ -49,6 +50,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 	}
 
 	strg := storageMock{}
+	metricService := metric.NewMetricService(strg)
 
 	tests := []struct {
 		name string
@@ -78,7 +80,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, test.url, nil)
 			w := httptest.NewRecorder()
 
-			handler := NewHandler(strg)
+			handler := NewHandler(metricService)
 			handler.SetMetric(w, request)
 
 			res := w.Result()
@@ -93,10 +95,11 @@ func TestWithSetMetricHandle(t *testing.T) {
 
 func TestWithSetMetricHandle2(t *testing.T) {
 	strg := storageMock{}
+	metricService := metric.NewMetricService(strg)
 
 	r := chi.NewRouter()
 
-	handler := NewHandler(strg)
+	handler := NewHandler(metricService)
 
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.SetMetric)
 
@@ -149,8 +152,9 @@ func TestWithSetMetricHandle2(t *testing.T) {
 
 func TestWithGetValueMetricHandle(t *testing.T) {
 	strg := &storageMock{}
+	metricService := metric.NewMetricService(strg)
 
-	handler := NewHandler(strg)
+	handler := NewHandler(metricService)
 
 	r := chi.NewRouter()
 	r.Get("/{metricType}/{metricName}", handler.GetValueMetric)
@@ -217,9 +221,10 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 }
 
 func TestWithGetMetricsHandle(t *testing.T) {
-	ms := storageMock{}
+	strg := storageMock{}
+	metricService := metric.NewMetricService(strg)
 
-	handler := NewHandler(ms)
+	handler := NewHandler(metricService)
 
 	r := chi.NewRouter()
 	r.Get("/", handler.GetMetrics)

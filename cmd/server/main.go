@@ -7,6 +7,7 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/routes"
+	"github.com/NikolosHGW/metric/internal/server/services/metric"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 )
 
@@ -20,7 +21,8 @@ func run() error {
 	config := NewConfig()
 
 	strg := memory.NewMemStorage()
-	handler := handlers.NewHandler(strg)
+	metricService := metric.NewMetricService(strg)
+	handler := handlers.NewHandler(metricService)
 
 	r := routes.InitRouter(handler)
 
