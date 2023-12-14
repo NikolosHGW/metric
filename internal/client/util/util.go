@@ -1,11 +1,13 @@
 package util
 
 import (
+	"bytes"
+	"encoding/json"
+	"log"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
+	"github.com/NikolosHGW/metric/internal/models/metric"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
@@ -30,13 +32,28 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 	metricTypeMap := util.GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
-			result := getStringValue(v)
-			adrs := getResultURL(host, metricTypeMap[k], k, result)
+			delta := getIntValue(metricTypeMap[k], v)
+			value := getFloatValue(metricTypeMap[k], v)
+			req := metric.Metrics{
+				ID:    k,
+				MType: metricTypeMap[k],
+				Delta: &delta,
+				Value: &value,
+			}
 
-			resp, err := http.Post(adrs, "text/plain", nil)
+			data, err := json.Marshal(req)
 			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
 				continue
 			}
+			r := bytes.NewReader(data)
+
+			resp, err := http.Post("/update", "application/json", r)
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
+				continue
+			}
+			log.Println("metric/internal/client/util/util.go SendMetrics post status", resp.Status)
 			resp.Body.Close()
 		}
 
@@ -44,34 +61,24 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 	}
 }
 
-func getStringValue(v interface{}) string {
-	switch v2 := v.(type) {
-	case util.Gauge:
-		return strconv.FormatFloat(float64(v2), 'f', -1, 64)
-	case util.Counter:
-		return strconv.Itoa(int(v2))
+func getIntValue(metricType string, value interface{}) int64 {
+	if metricType == util.CounterType {
+		v, ok := value.(int64)
+		if ok {
+			return v
+		}
 	}
 
-	return ""
+	return 0
 }
 
-func getResultURL(host, metricType, metricName, metricValue string) string {
-	sb := strings.Builder{}
-
-	sb.WriteString("http://")
-	sb.WriteString(host)
-	sb.WriteString("/update/")
-	if metricType != "" {
-		sb.WriteString(metricType)
-		sb.WriteString("/")
-	}
-	if metricName != "" {
-		sb.WriteString(metricName)
-		sb.WriteString("/")
-	}
-	if metricValue != "" {
-		sb.WriteString(metricValue)
+func getFloatValue(metricType string, value interface{}) float64 {
+	if metricType == util.GaugeType {
+		v, ok := value.(float64)
+		if ok {
+			return v
+		}
 	}
 
-	return sb.String()
+	return 0
 }
