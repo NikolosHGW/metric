@@ -49,7 +49,7 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 			}
 			r := bytes.NewReader(data)
 
-			resp, err := http.Post(getUrl(host), "application/json", r)
+			resp, err := http.Post(getURL(host), "application/json", r)
 			if err != nil {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
 				continue
@@ -62,7 +62,7 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 	}
 }
 
-func getUrl(host string) string {
+func getURL(host string) string {
 	sb := strings.Builder{}
 
 	sb.WriteString("http://")
