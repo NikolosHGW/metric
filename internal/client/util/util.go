@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/NikolosHGW/metric/internal/models/metric"
+	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
@@ -34,7 +35,7 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 		for k, v := range m.GetMetrics() {
 			delta := getIntValue(metricTypeMap[k], v)
 			value := getFloatValue(metricTypeMap[k], v)
-			req := metric.Metrics{
+			req := models.Metrics{
 				ID:    k,
 				MType: metricTypeMap[k],
 				Delta: &delta,
@@ -48,7 +49,7 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 			}
 			r := bytes.NewReader(data)
 
-			resp, err := http.Post("/update", "application/json", r)
+			resp, err := http.Post(getUrl(host), "application/json", r)
 			if err != nil {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
 				continue
@@ -59,6 +60,16 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 
 		time.Sleep(time.Duration(reportInterval) * time.Second)
 	}
+}
+
+func getUrl(host string) string {
+	sb := strings.Builder{}
+
+	sb.WriteString("http://")
+	sb.WriteString(host)
+	sb.WriteString("/update")
+
+	return sb.String()
 }
 
 func getIntValue(metricType string, value interface{}) int64 {

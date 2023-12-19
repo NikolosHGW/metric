@@ -1,14 +1,19 @@
 package handlers
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 
+	"github.com/NikolosHGW/metric/internal/models"
+	"github.com/NikolosHGW/metric/internal/server/logger"
 	"github.com/go-chi/chi"
+	"go.uber.org/zap"
 )
 
 type metricService interface {
-	SetMetric(string, string, string)
+	SetMetric(models.Metrics)
+	GetMetricByName(string) (models.Metrics, error)
 	GetMetricValue(string, string) (string, error)
 	GetAllMetrics() []string
 }
@@ -24,14 +29,34 @@ func NewHandler(ms metricService) *Handler {
 }
 
 func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
-	metricType := chi.URLParam(r, "metricType")
-	metricName := chi.URLParam(r, "metricName")
-	metricValue := chi.URLParam(r, "metricValue")
-	h.metricService.SetMetric(metricType, metricName, metricValue)
+	metricModel := models.NewMetricsModel()
+	err := metricModel.DecodeMetricRequest(r.Body)
+	if err != nil {
+		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric cannot decode request JSON body", zap.Error(err))
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Add("Content-Type", "charset=utf-8")
+	h.metricService.SetMetric(*metricModel)
+
+	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID)
+	if err != nil {
+		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric", zap.Error(err))
+		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(updatedMetric)
+	if err != nil {
+		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric cannot encode to JSON", zap.Error(err))
+		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {

@@ -4,64 +4,52 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-type metricValue struct {
-	gauge   util.Gauge
-	counter util.Counter
-}
+// type metricModel interface {
+// 	GetMetricName() string
+// 	GetMetricType() string
+// 	GetCounterValue() util.Counter
+// 	GetGaugeValue() util.Gauge
+// }
 
 type MemStorage struct {
-	metrics map[string]metricValue
+	metrics map[string]models.Metrics
 }
 
+// TODO: удалить?
 func (ms MemStorage) GetGaugeMetric(name string) (util.Gauge, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
-		return metric.gauge, nil
+		return util.Gauge(*metric.Value), nil
 	}
 
 	return 0, fmt.Errorf("gauge metric %s not found", name)
 }
 
+// TODO: удалить?
 func (ms MemStorage) GetCounterMetric(name string) (util.Counter, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
-		return metric.counter, nil
+		return util.Counter(*metric.Delta), nil
 	}
 
 	return 0, fmt.Errorf("counter metric %s not found", name)
 }
 
-func (ms *MemStorage) SetGaugeMetric(name string, value util.Gauge) {
-	metric, exist := ms.metrics[name]
-	if exist {
-		metric.gauge = value
-		ms.metrics[name] = metric
-	} else {
-		if ms.metrics == nil {
-			ms.metrics = make(map[string]metricValue)
-		}
-		ms.metrics[name] = metricValue{
-			gauge: value,
-		}
-	}
+func (ms *MemStorage) SetMetric(m models.Metrics) {
+	ms.metrics[m.ID] = m
 }
 
-func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
+func (ms *MemStorage) GetMetric(name string) (models.Metrics, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
-		metric.counter += value
-		ms.metrics[name] = metric
-	} else {
-		if ms.metrics == nil {
-			ms.metrics = make(map[string]metricValue)
-		}
-		ms.metrics[name] = metricValue{
-			counter: value,
-		}
+		return metric, nil
 	}
+
+	return models.Metrics{}, fmt.Errorf("%s metric not found", name)
 }
 
 func (ms MemStorage) GetAllMetrics() []string {
@@ -79,10 +67,10 @@ func (ms MemStorage) GetAllMetrics() []string {
 	i := 0
 	for _, k := range keys {
 		v := ms.metrics[k]
-		if v.counter != 0 {
-			result[i] = fmt.Sprintf("%v: %v", k, v.counter)
+		if v.MType == util.CounterType {
+			result[i] = fmt.Sprintf("%v: %v", k, *v.Delta)
 		} else {
-			result[i] = fmt.Sprintf("%v: %v", k, v.gauge)
+			result[i] = fmt.Sprintf("%v: %v", k, *v.Value)
 		}
 		i++
 	}
@@ -91,5 +79,8 @@ func (ms MemStorage) GetAllMetrics() []string {
 }
 
 func NewMemStorage() *MemStorage {
-	return new(MemStorage)
+	storage := new(MemStorage)
+	storage.metrics = make(map[string]models.Metrics)
+
+	return storage
 }
