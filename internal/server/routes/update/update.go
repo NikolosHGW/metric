@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func InitUpdateRoutes(r chi.Router, h http.HandlerFunc, hJson http.HandlerFunc) {
+func InitUpdateRoutes(r chi.Router, h http.HandlerFunc, hJSON http.HandlerFunc) {
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/", hJson)
+		r.Post("/", hJSON)
 
 		textGroup := r.Group(nil)
 		textGroup.Use(middlewares.CheckMetricNameMiddleware)
