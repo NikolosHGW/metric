@@ -12,6 +12,52 @@ type MemStorage struct {
 	metrics map[string]models.Metrics
 }
 
+func (ms MemStorage) GetGaugeMetric(name string) (util.Gauge, error) {
+	metric, exist := ms.metrics[name]
+	if exist {
+		return util.Gauge(*metric.Value), nil
+	}
+
+	return 0, fmt.Errorf("gauge metric %s not found", name)
+}
+
+func (ms MemStorage) GetCounterMetric(name string) (util.Counter, error) {
+	metric, exist := ms.metrics[name]
+	if exist {
+		return util.Counter(*metric.Delta), nil
+	}
+
+	return 0, fmt.Errorf("counter metric %s not found", name)
+}
+
+func (ms *MemStorage) SetGaugeMetric(name string, value util.Gauge) {
+	metric, exist := ms.metrics[name]
+	if exist {
+		metric.Value = (*float64)(&value)
+		ms.metrics[name] = metric
+	} else {
+		ms.metrics[name] = models.Metrics{
+			ID:    name,
+			MType: util.GaugeType,
+			Value: (*float64)(&value),
+		}
+	}
+}
+
+func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
+	metric, exist := ms.metrics[name]
+	if exist {
+		metric.Delta = (*int64)(&value)
+		ms.metrics[name] = metric
+	} else {
+		ms.metrics[name] = models.Metrics{
+			ID:    name,
+			MType: util.CounterType,
+			Delta: (*int64)(&value),
+		}
+	}
+}
+
 func (ms *MemStorage) SetMetric(m models.Metrics) {
 	ms.metrics[m.ID] = m
 }

@@ -7,12 +7,15 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/server/logger"
+	"github.com/go-chi/chi"
 
 	"go.uber.org/zap"
 )
 
 type metricService interface {
-	SetMetric(models.Metrics)
+	SetMetric(string, string, string)
+	SetJSONMetric(models.Metrics)
+	GetMetricValue(string, string) (string, error)
 	GetMetricByName(string) (models.Metrics, error)
 	GetAllMetrics() []string
 }
@@ -34,6 +37,33 @@ func NewHandler(ms metricService, l customLogger) *Handler {
 }
 
 func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
+	h.metricService.SetMetric(metricType, metricName, metricValue)
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Add("Content-Type", "charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue, err := h.metricService.GetMetricValue(metricType, metricName)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Add("Content-Type", "charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(metricValue))
+}
+
+func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricsModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
@@ -43,7 +73,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	h.metricService.SetMetric(*metricModel)
+	h.metricService.SetJSONMetric(*metricModel)
 
 	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID)
 	if err != nil {
