@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/NikolosHGW/metric/internal/models"
@@ -80,76 +79,6 @@ func TestMemStorage_GetMetric(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-		})
-	}
-}
-
-func TestMemStorage_GetGaugeMetric(t *testing.T) {
-	ms := NewMemStorage()
-	fooValue := 42.1
-	mockModel1 := models.Metrics{
-		ID:    "foo",
-		Value: &fooValue,
-	}
-	barValue := 100.01
-	mockModel2 := models.Metrics{
-		ID:    "bar",
-		Value: &barValue,
-	}
-	ms.SetMetric(mockModel1)
-	ms.SetMetric(mockModel2)
-
-	testCases := []struct {
-		name       string
-		metricName string
-		expected   util.Gauge
-		err        error
-	}{
-		{"положительный тест: достать существующую метрику foo", mockModel1.ID, util.Gauge(*mockModel1.Value), nil},
-		{"положительный тест: достать существующую метрику bar", mockModel2.ID, util.Gauge(*mockModel2.Value), nil},
-		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("gauge metric baz not found")},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual, err := ms.GetGaugeMetric(tc.metricName)
-			assert.Equal(t, tc.expected, actual)
-			assert.Equal(t, tc.err, err)
-		})
-	}
-}
-
-func TestMemStorage_GetCounterMetric(t *testing.T) {
-	ms := NewMemStorage()
-	var fooValue int64 = 42
-	mockModel1 := models.Metrics{
-		ID:    "foo",
-		Delta: &fooValue,
-	}
-	var barValue int64 = 100
-	mockModel2 := models.Metrics{
-		ID:    "bar",
-		Delta: &barValue,
-	}
-	ms.SetMetric(mockModel1)
-	ms.SetMetric(mockModel2)
-
-	testCases := []struct {
-		name       string
-		metricName string
-		expected   util.Counter
-		err        error
-	}{
-		{"положительный тест: достать существующую метрику foo", mockModel1.ID, util.Counter(*mockModel1.Delta), nil},
-		{"положительный тест: достать существующую метрику bar", mockModel2.ID, util.Counter(*mockModel2.Delta), nil},
-		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("counter metric baz not found")},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual, err := ms.GetCounterMetric(tc.metricName)
-			assert.Equal(t, tc.expected, actual)
-			assert.Equal(t, tc.err, err)
 		})
 	}
 }

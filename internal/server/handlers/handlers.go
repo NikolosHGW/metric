@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 
 	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/server/logger"
+
 	"go.uber.org/zap"
 )
 
@@ -17,13 +17,19 @@ type metricService interface {
 	GetAllMetrics() []string
 }
 
-type Handler struct {
-	metricService metricService
+type customLogger interface {
+	Debug(string, ...zap.Field)
 }
 
-func NewHandler(ms metricService) *Handler {
+type Handler struct {
+	metricService metricService
+	logger        customLogger
+}
+
+func NewHandler(ms metricService, l customLogger) *Handler {
 	return &Handler{
 		metricService: ms,
+		logger:        l,
 	}
 }
 
@@ -32,7 +38,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
 		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric cannot decode request JSON body", zap.Error(err))
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -42,14 +48,14 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID)
 	if err != nil {
 		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric", zap.Error(err))
-		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
 	resp, err := json.Marshal(updatedMetric)
 	if err != nil {
 		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric cannot encode to JSON", zap.Error(err))
-		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
@@ -63,26 +69,24 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
 		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_GetMetric cannot decode request JSON body", zap.Error(err))
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 
 		return
 	}
 	defer r.Body.Close()
 
 	metric, err := h.metricService.GetMetricByName(metricModel.ID)
-	fmt.Println(metric)
 	if err != nil {
 		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_GetMetric metric not found", zap.Error(err))
-		w.WriteHeader(http.StatusNotFound)
+		http.Error(w, "метрика не найдена", http.StatusNotFound)
 
 		return
 	}
 
 	resp, err := json.Marshal(metric)
-	fmt.Println(resp, string(resp))
 	if err != nil {
 		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_GetMetric cannot encode to JSON", zap.Error(err))
-		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 

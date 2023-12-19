@@ -8,35 +8,8 @@ import (
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
-// type metricModel interface {
-// 	GetMetricName() string
-// 	GetMetricType() string
-// 	GetCounterValue() util.Counter
-// 	GetGaugeValue() util.Gauge
-// }
-
 type MemStorage struct {
 	metrics map[string]models.Metrics
-}
-
-// TODO: удалить?
-func (ms MemStorage) GetGaugeMetric(name string) (util.Gauge, error) {
-	metric, exist := ms.metrics[name]
-	if exist {
-		return util.Gauge(*metric.Value), nil
-	}
-
-	return 0, fmt.Errorf("gauge metric %s not found", name)
-}
-
-// TODO: удалить?
-func (ms MemStorage) GetCounterMetric(name string) (util.Counter, error) {
-	metric, exist := ms.metrics[name]
-	if exist {
-		return util.Counter(*metric.Delta), nil
-	}
-
-	return 0, fmt.Errorf("counter metric %s not found", name)
 }
 
 func (ms *MemStorage) SetMetric(m models.Metrics) {

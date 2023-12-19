@@ -28,7 +28,7 @@ func run() error {
 
 	strg := memory.NewMemStorage()
 	metricService := metric.NewMetricService(strg)
-	handler := handlers.NewHandler(metricService)
+	handler := handlers.NewHandler(metricService, logger.Log)
 
 	r := routes.InitRouter(handler)
 
