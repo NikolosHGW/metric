@@ -60,6 +60,9 @@ func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 }
 
 func (ms *MemStorage) SetMetric(m models.Metrics) {
+	if m.MType == util.CounterType {
+		ms.SetCounterMetric(m.ID, util.Counter(*m.Delta))
+	}
 	ms.metrics[m.ID] = m
 }
 
