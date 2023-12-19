@@ -74,9 +74,9 @@ func getUrl(host string) string {
 
 func getIntValue(metricType string, value interface{}) int64 {
 	if metricType == util.CounterType {
-		v, ok := value.(int64)
+		v, ok := value.(util.Counter)
 		if ok {
-			return v
+			return int64(v)
 		}
 	}
 
@@ -85,9 +85,9 @@ func getIntValue(metricType string, value interface{}) int64 {
 
 func getFloatValue(metricType string, value interface{}) float64 {
 	if metricType == util.GaugeType {
-		v, ok := value.(float64)
+		v, ok := value.(util.Gauge)
 		if ok {
-			return v
+			return float64(v)
 		}
 	}
 

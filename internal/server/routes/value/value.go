@@ -7,7 +7,5 @@ import (
 )
 
 func InitValueRoutes(r chi.Router, h http.HandlerFunc) {
-	r.Route("/value", func(r chi.Router) {
-		r.Get("/{metricType}/{metricName}", h)
-	})
+	r.Post("/value", h)
 }

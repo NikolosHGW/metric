@@ -11,7 +11,7 @@ import (
 
 type Handler interface {
 	SetMetric(http.ResponseWriter, *http.Request)
-	GetValueMetric(http.ResponseWriter, *http.Request)
+	GetMetric(http.ResponseWriter, *http.Request)
 	GetMetrics(http.ResponseWriter, *http.Request)
 }
 
@@ -24,7 +24,7 @@ func InitRouter(handler Handler) *chi.Mux {
 		r.Get("/", handler.GetMetrics)
 
 		update.InitUpdateRoutes(r, handler.SetMetric)
-		value.InitValueRoutes(r, handler.GetValueMetric)
+		value.InitValueRoutes(r, handler.GetMetric)
 	})
 
 	return r
