@@ -47,7 +47,8 @@ func (ms *MemStorage) SetGaugeMetric(name string, value util.Gauge) {
 func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 	metric, exist := ms.metrics[name]
 	if exist {
-		metric.Delta = (*int64)(&value)
+		newValue := *metric.Delta + int64(value)
+		metric.Delta = (*int64)(&newValue)
 		ms.metrics[name] = metric
 	} else {
 		ms.metrics[name] = models.Metrics{
