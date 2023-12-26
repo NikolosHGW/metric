@@ -13,7 +13,7 @@ func main() {
 	stats := metrics.NewMetrics()
 
 	go util.CollectMetrics(stats, config.GetPollInterval())
-	go util.SendMetrics(stats, config.GetReportInterval(), config.GetAddress())
+	go util.SendJSONMetrics(stats, config.GetReportInterval(), config.GetAddress())
 
 	for {
 		time.Sleep(10 * time.Second)

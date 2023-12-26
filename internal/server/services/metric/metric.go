@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
 type repository interface {
+	SetMetric(models.Metrics)
+	GetMetric(string) (models.Metrics, error)
 	SetGaugeMetric(string, util.Gauge)
 	SetCounterMetric(string, util.Counter)
 	GetGaugeMetric(string) (util.Gauge, error)
@@ -47,6 +50,14 @@ func (ms MetricService) GetMetricValue(metricType, metricName string) (string, e
 	metricValue, err := ms.strg.GetCounterMetric(metricName)
 
 	return fmt.Sprintf("%v", metricValue), err
+}
+
+func (ms *MetricService) SetJSONMetric(m models.Metrics) {
+	ms.strg.SetMetric(m)
+}
+
+func (ms MetricService) GetMetricByName(name string) (models.Metrics, error) {
+	return ms.strg.GetMetric(name)
 }
 
 func (ms MetricService) GetAllMetrics() []string {

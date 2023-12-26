@@ -7,7 +7,8 @@ import (
 )
 
 type config struct {
-	Address string `env:"ADDRESS"`
+	Address  string `env:"ADDRESS"`
+	LogLevel string `env:"LOG_LEVEL"`
 }
 
 func (c *config) InitEnv() {
@@ -16,6 +17,7 @@ func (c *config) InitEnv() {
 
 func (c *config) parseFlags() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "net address host:port")
+	flag.StringVar(&c.LogLevel, "l", "info", "log level")
 	flag.Parse()
 }
 
