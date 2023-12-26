@@ -40,6 +40,9 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler.SetJSONMetric))
 	defer server.Close()
 
+	gaugeValue := f(42.1)
+	counterValue := i(10)
+
 	testCases := []struct {
 		name     string
 		request  models.Metrics
@@ -48,14 +51,14 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 	}{
 		{
 			name:     "положительный тест: установить gauge метрику",
-			request:  models.Metrics{ID: "foo", MType: "gauge", Value: f(42.1)},
-			expected: models.Metrics{ID: "foo", MType: "gauge", Value: f(42.1)},
+			request:  models.Metrics{ID: "foo", MType: util.GaugeType, Value: gaugeValue},
+			expected: models.Metrics{ID: "foo", MType: util.GaugeType, Value: gaugeValue},
 			status:   http.StatusOK,
 		},
 		{
 			name:     "положительный тест: установить counter метрику",
-			request:  models.Metrics{ID: "bar", MType: "counter", Delta: i(10)},
-			expected: models.Metrics{ID: "bar", MType: "counter", Delta: i(10)},
+			request:  models.Metrics{ID: "bar", MType: util.CounterType, Delta: counterValue},
+			expected: models.Metrics{ID: "bar", MType: util.CounterType, Delta: counterValue},
 			status:   http.StatusOK,
 		},
 	}

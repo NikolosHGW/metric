@@ -52,7 +52,7 @@ func (ms MetricService) GetMetricValue(metricType, metricName string) (string, e
 	return fmt.Sprintf("%v", metricValue), err
 }
 
-func (ms MetricService) SetJSONMetric(m models.Metrics) {
+func (ms *MetricService) SetJSONMetric(m models.Metrics) {
 	ms.strg.SetMetric(m)
 }
 

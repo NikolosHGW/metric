@@ -21,24 +21,28 @@ func TestMemStorage_SetMetric(t *testing.T) {
 
 	metric, exist := ms.metrics["foo"]
 	assert.True(t, exist, "метрика не найдена в хранилище")
-	assert.Equal(t, mockModel, metric, "метрика не соответствует установленной")
+	assert.Equal(t, util.Gauge(*mockModel.Value), metric.gauge, "метрика не соответствует установленной")
 }
 
 func TestMemStorage_GetMetric(t *testing.T) {
 	fooValue := 42.1
 	var barValue int64 = 100
+	expectedMetric := map[string]models.Metrics{
+		"foo": {
+			ID:    "foo",
+			MType: util.GaugeType,
+			Value: &fooValue,
+		},
+		"bar": {
+			ID:    "bar",
+			MType: util.CounterType,
+			Delta: &barValue,
+		},
+	}
 	ms := &MemStorage{
-		metrics: map[string]models.Metrics{
-			"foo": {
-				ID:    "foo",
-				MType: util.GaugeType,
-				Value: &fooValue,
-			},
-			"bar": {
-				ID:    "bar",
-				MType: util.CounterType,
-				Delta: &barValue,
-			},
+		metrics: map[string]metricValue{
+			"foo": {gauge: util.Gauge(fooValue)},
+			"bar": {counter: util.Counter(barValue)},
 		},
 	}
 
@@ -51,13 +55,13 @@ func TestMemStorage_GetMetric(t *testing.T) {
 		{
 			name:     "достать существующую gauge метрику",
 			metric:   "foo",
-			expected: ms.metrics["foo"],
+			expected: expectedMetric["foo"],
 			err:      false,
 		},
 		{
 			name:     "достать существующую counter метрику",
 			metric:   "bar",
-			expected: ms.metrics["bar"],
+			expected: expectedMetric["bar"],
 			err:      false,
 		},
 		{
