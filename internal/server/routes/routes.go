@@ -21,6 +21,7 @@ func InitRouter(handler Handler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.WithLogging)
+	r.Use(middlewares.WithGzip)
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetMetrics)
