@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -98,9 +99,30 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
 				continue
 			}
-			r := bytes.NewReader(data)
 
-			resp, err := http.Post(getURL(host), "application/json", r)
+			buf := bytes.NewBuffer(nil)
+			zb := gzip.NewWriter(buf)
+			_, gzipErr := zb.Write(data)
+			if gzipErr != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip write", gzipErr)
+				continue
+			}
+			err = zb.Close()
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip cloze", err)
+				continue
+			}
+
+			nr, err := http.NewRequest(http.MethodPost, getURL(host), buf)
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot create NewRequest", err)
+				continue
+			}
+			nr.Header.Set("Content-Type", "application/json")
+			nr.Header.Set("Content-Encoding", "gzip")
+			nr.Header.Set("Accept-Encoding", "gzip")
+			resp, err := http.DefaultClient.Do(nr)
+
 			if err != nil {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
 				continue
