@@ -4,9 +4,89 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/util"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMemStorage_SetMetric(t *testing.T) {
+	ms := NewMemStorage()
+	fooValue := 42.1
+	mockModel := models.Metrics{
+		ID:    "foo",
+		Value: &fooValue,
+	}
+
+	ms.SetMetric(mockModel)
+
+	metric, exist := ms.metrics["foo"]
+	assert.True(t, exist, "метрика не найдена в хранилище")
+	assert.Equal(t, util.Gauge(*mockModel.Value), metric.gauge, "метрика не соответствует установленной")
+}
+
+func TestMemStorage_GetMetric(t *testing.T) {
+	fooValue := 42.1
+	var barValue int64 = 100
+	expectedMetric := map[string]models.Metrics{
+		"foo": {
+			ID:    "foo",
+			MType: util.GaugeType,
+			Value: &fooValue,
+		},
+		"bar": {
+			ID:    "bar",
+			MType: util.CounterType,
+			Delta: &barValue,
+		},
+	}
+	ms := &MemStorage{
+		metrics: map[string]metricValue{
+			"foo": {gauge: util.Gauge(fooValue)},
+			"bar": {counter: util.Counter(barValue)},
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		metric   string
+		expected models.Metrics
+		err      bool
+	}{
+		{
+			name:     "достать существующую gauge метрику",
+			metric:   "foo",
+			expected: expectedMetric["foo"],
+			err:      false,
+		},
+		{
+			name:     "достать существующую counter метрику",
+			metric:   "bar",
+			expected: expectedMetric["bar"],
+			err:      false,
+		},
+		{
+			name:     "достать несуществующую метрику",
+			metric:   "baz",
+			expected: models.Metrics{},
+			err:      true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			actual, err := ms.GetMetric(tc.metric)
+
+			assert.Equal(t, tc.expected, actual)
+
+			if tc.err {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
 
 func TestMemStorage_GetGaugeMetric(t *testing.T) {
 	ms := NewMemStorage()

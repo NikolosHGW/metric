@@ -1,11 +1,16 @@
 package util
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
@@ -74,4 +79,90 @@ func getResultURL(host, metricType, metricName, metricValue string) string {
 	}
 
 	return sb.String()
+}
+
+func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
+	metricTypeMap := util.GetMetricTypeMap()
+	for {
+		for k, v := range m.GetMetrics() {
+			delta := getIntValue(metricTypeMap[k], v)
+			value := getFloatValue(metricTypeMap[k], v)
+			req := models.Metrics{
+				ID:    k,
+				MType: metricTypeMap[k],
+				Delta: &delta,
+				Value: &value,
+			}
+
+			data, err := json.Marshal(req)
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
+				continue
+			}
+
+			buf := bytes.NewBuffer(nil)
+			zb := gzip.NewWriter(buf)
+			_, gzipErr := zb.Write(data)
+			if gzipErr != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip write", gzipErr)
+				continue
+			}
+			err = zb.Close()
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip cloze", err)
+				continue
+			}
+
+			nr, err := http.NewRequest(http.MethodPost, getURL(host), buf)
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot create NewRequest", err)
+				continue
+			}
+			nr.Header.Set("Content-Type", "application/json")
+			nr.Header.Set("Content-Encoding", "gzip")
+			nr.Header.Set("Accept-Encoding", "gzip")
+			resp, err := http.DefaultClient.Do(nr)
+
+			if err != nil {
+				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
+				continue
+			}
+			log.Println("metric/internal/client/util/util.go SendMetrics post status", resp.Status)
+			resp.Body.Close()
+		}
+
+		time.Sleep(time.Duration(reportInterval) * time.Second)
+	}
+}
+
+func getURL(host string) string {
+	sb := strings.Builder{}
+
+	sb.WriteString("http://")
+	sb.WriteString(host)
+	sb.WriteString("/update")
+
+	return sb.String()
+}
+
+func getIntValue(metricType string, value interface{}) int64 {
+	if metricType == util.CounterType {
+		v, ok := value.(util.Counter)
+		if ok {
+			return int64(v)
+		}
+	}
+
+	return 0
+}
+
+func getFloatValue(metricType string, value interface{}) float64 {
+	if metricType == util.GaugeType {
+		v, ok := value.(util.Gauge)
+		if ok {
+			return float64(v)
+		}
+	}
+
+	return 0
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/util"
 )
 
@@ -64,6 +65,33 @@ func (ms *MemStorage) SetCounterMetric(name string, value util.Counter) {
 	}
 }
 
+func (ms *MemStorage) SetMetric(m models.Metrics) {
+	if m.MType == util.CounterType {
+		ms.SetCounterMetric(m.ID, util.Counter(*m.Delta))
+
+		return
+	}
+
+	ms.SetGaugeMetric(m.ID, util.Gauge(*m.Value))
+}
+
+func getMetricsModel(name string, metric metricValue) models.Metrics {
+	if metric.counter != 0 {
+		return models.Metrics{ID: name, MType: util.CounterType, Delta: (*int64)(&metric.counter)}
+	}
+
+	return models.Metrics{ID: name, MType: util.GaugeType, Value: (*float64)(&metric.gauge)}
+}
+
+func (ms *MemStorage) GetMetric(name string) (models.Metrics, error) {
+	metric, exist := ms.metrics[name]
+	if exist {
+		return getMetricsModel(name, metric), nil
+	}
+
+	return models.Metrics{}, fmt.Errorf("%s metric not found", name)
+}
+
 func (ms MemStorage) GetAllMetrics() []string {
 	result := make([]string, len(ms.metrics))
 
@@ -91,5 +119,8 @@ func (ms MemStorage) GetAllMetrics() []string {
 }
 
 func NewMemStorage() *MemStorage {
-	return new(MemStorage)
+	storage := new(MemStorage)
+	storage.metrics = make(map[string]metricValue)
+
+	return storage
 }
