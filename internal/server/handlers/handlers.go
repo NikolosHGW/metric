@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"path/filepath"
+	"runtime"
 
 	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/server/logger"
@@ -128,7 +130,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 func (h Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	metrics := h.metricService.GetAllMetrics()
 
-	tmpl, err := template.ParseFiles("list_metrics.tmpl")
+	tmpl, err := template.ParseFiles(filepath.Join(BasePath(), "/internal/server/handlers/list_metrics.tmpl"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -139,4 +141,10 @@ func (h Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func BasePath() string {
+	_, b, _, _ := runtime.Caller(0)
+
+	return filepath.Join(filepath.Dir(b), "../../..")
 }
