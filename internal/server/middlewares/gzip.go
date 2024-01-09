@@ -9,7 +9,7 @@ import (
 
 const (
 	applicationJSON = "application/json"
-	textHTML        = "text/html"
+	textHTML        = "html/text"
 )
 
 type compressWriter struct {
