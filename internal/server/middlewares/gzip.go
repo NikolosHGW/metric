@@ -77,10 +77,11 @@ func WithGzip(next http.Handler) http.Handler {
 
 		acceptEncoding := strings.Join(r.Header.Values("Accept-Encoding"), ", ")
 		contentType := strings.Join(r.Header.Values("Content-Type"), ", ")
+		accept := strings.Join(r.Header.Values("Accept"), ", ")
 
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		supportApplicationJSON := strings.Contains(contentType, applicationJSON)
-		supportTextHTML := strings.Contains(contentType, textHTML)
+		supportTextHTML := strings.Contains(accept, textHTML)
 
 		if supportsGzip && (supportApplicationJSON || supportTextHTML) {
 			cw := newCompressWriter(w)
