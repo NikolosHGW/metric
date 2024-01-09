@@ -136,6 +136,7 @@ func (h Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/html")
 	err = tmpl.Execute(w, metrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
