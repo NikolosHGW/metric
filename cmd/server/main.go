@@ -30,8 +30,8 @@ func run() error {
 	strg := memory.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 	handler := handlers.NewHandler(metricService, logger.Log)
-	diskStrg := disk.NewDiskStorage(strg, logger.Log, "/tmp/metrics-db.json")
-	diskService := services.NewDiskService(diskStrg, 3, true)
+	diskStrg := disk.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
+	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
 	go diskService.CollectMetrics()
 
