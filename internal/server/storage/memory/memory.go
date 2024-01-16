@@ -92,6 +92,16 @@ func (ms *MemStorage) GetMetric(name string) (models.Metrics, error) {
 	return models.Metrics{}, fmt.Errorf("%s metric not found", name)
 }
 
+func (ms *MemStorage) GetMetricsModels() []models.Metrics {
+	models := make([]models.Metrics, 0, len(ms.metrics))
+	for k := range ms.metrics {
+		model, _ := ms.GetMetric(k)
+		models = append(models, model)
+	}
+
+	return models
+}
+
 func (ms MemStorage) GetAllMetrics() []string {
 	result := make([]string, len(ms.metrics))
 

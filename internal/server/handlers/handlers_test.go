@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/NikolosHGW/metric/internal/models"
-	"github.com/NikolosHGW/metric/internal/server/services/metric"
+	"github.com/NikolosHGW/metric/internal/server/services"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 	"github.com/NikolosHGW/metric/internal/util"
 	"github.com/go-chi/chi"
@@ -34,7 +34,7 @@ func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
 
 func TestHandler_SetJSONMetric(t *testing.T) {
 	strg := memory.NewMemStorage()
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	handler := NewHandler(metricService, &mockLogger{})
 	server := httptest.NewServer(http.HandlerFunc(handler.SetJSONMetric))
@@ -88,7 +88,7 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 
 func TestHandler_GetMetric(t *testing.T) {
 	strg := memory.NewMemStorage()
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 	metricService.SetJSONMetric(models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
 	metricService.SetJSONMetric(models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
 	h := NewHandler(metricService, &mockLogger{})
@@ -200,7 +200,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 	}
 
 	strg := storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	tests := []struct {
 		name string
@@ -245,7 +245,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 
 func TestWithSetMetricHandle2(t *testing.T) {
 	strg := storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	r := chi.NewRouter()
 
@@ -302,7 +302,7 @@ func TestWithSetMetricHandle2(t *testing.T) {
 
 func TestWithGetValueMetricHandle(t *testing.T) {
 	strg := &storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	handler := NewHandler(metricService, &mockLogger{})
 
@@ -372,7 +372,7 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 
 func TestWithGetMetricsHandle(t *testing.T) {
 	strg := storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	handler := NewHandler(metricService, &mockLogger{})
 

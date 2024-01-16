@@ -1,4 +1,4 @@
-package metric
+package services
 
 import (
 	"fmt"

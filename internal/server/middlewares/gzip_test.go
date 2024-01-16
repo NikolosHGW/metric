@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/NikolosHGW/metric/internal/server/handlers"
-	"github.com/NikolosHGW/metric/internal/server/services/metric"
+	"github.com/NikolosHGW/metric/internal/server/services"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -21,7 +21,7 @@ func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
 
 func TestWithGzip(t *testing.T) {
 	strg := memory.NewMemStorage()
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 	handler := handlers.NewHandler(metricService, &mockLogger{})
 
 	h := WithGzip(http.HandlerFunc(handler.SetJSONMetric))
