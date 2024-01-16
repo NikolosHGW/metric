@@ -9,9 +9,9 @@ import (
 type config struct {
 	Address         string `env:"ADDRESS"`
 	LogLevel        string `env:"LOG_LEVEL"`
-	storeInterval   int    `env:"STORE_INTERVAL"`
-	fileStoragePath string `env:"FILE_STORAGE_PATH"`
-	restore         bool   `env:"RESTORE"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func (c *config) InitEnv() {
@@ -21,9 +21,9 @@ func (c *config) InitEnv() {
 func (c *config) parseFlags() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "net address host:port")
 	flag.StringVar(&c.LogLevel, "l", "info", "log level")
-	flag.IntVar(&c.storeInterval, "i", 300, "store metrics to file seconds interval")
-	flag.StringVar(&c.fileStoragePath, "f", "/tmp/metrics-db.json", "path where store metrics")
-	flag.BoolVar(&c.restore, "r", true, "need load from file")
+	flag.IntVar(&c.StoreInterval, "i", 300, "store metrics to file seconds interval")
+	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "path where store metrics")
+	flag.BoolVar(&c.Restore, "r", true, "need load from file")
 	flag.Parse()
 }
 
@@ -37,13 +37,13 @@ func NewConfig() *config {
 }
 
 func (c config) GetStoreInterval() int {
-	return c.storeInterval
+	return c.StoreInterval
 }
 
 func (c config) GetFileStoragePath() string {
-	return c.fileStoragePath
+	return c.FileStoragePath
 }
 
 func (c config) GetRestore() bool {
-	return c.restore
+	return c.Restore
 }
