@@ -116,3 +116,7 @@ func (ds DiskStorage) WriteToStorage() {
 		ds.strg.SetMetric(*metric)
 	}
 }
+
+func (ds DiskStorage) CanWriteToDisk() bool {
+	return ds.fileName != ""
+}

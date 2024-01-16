@@ -5,6 +5,7 @@ import "time"
 type DiskStorage interface {
 	WriteToDisk()
 	WriteToStorage()
+	CanWriteToDisk() bool
 }
 
 type DiskService struct {
@@ -22,10 +23,12 @@ func NewDiskService(diskStorage DiskStorage, storeInterval int, restore bool) *D
 }
 
 func (dService DiskService) CollectMetrics() {
-	for {
-		dService.diskStrg.WriteToDisk()
+	if dService.diskStrg.CanWriteToDisk() {
+		for {
+			dService.diskStrg.WriteToDisk()
 
-		time.Sleep(time.Duration(dService.storeInterval) * time.Second)
+			time.Sleep(time.Duration(dService.storeInterval) * time.Second)
+		}
 	}
 }
 
