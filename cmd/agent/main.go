@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/NikolosHGW/metric/internal/client/metrics"
-	"github.com/NikolosHGW/metric/internal/client/util"
+	"github.com/NikolosHGW/metric/internal/client/request"
 )
 
 func main() {
@@ -12,8 +12,8 @@ func main() {
 
 	stats := metrics.NewMetrics()
 
-	go util.CollectMetrics(stats, config.GetPollInterval())
-	go util.SendMetrics(stats, config.GetReportInterval(), config.GetAddress())
+	go request.CollectMetrics(stats, config.GetPollInterval())
+	go request.SendJSONMetrics(stats, config.GetReportInterval(), config.GetAddress())
 
 	for {
 		time.Sleep(10 * time.Second)

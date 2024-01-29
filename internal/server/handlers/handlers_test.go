@@ -1,21 +1,164 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
+
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/NikolosHGW/metric/internal/server/services/metric"
-	"github.com/NikolosHGW/metric/internal/util"
+	"github.com/NikolosHGW/metric/internal/models"
+	"github.com/NikolosHGW/metric/internal/server/services"
+	"github.com/NikolosHGW/metric/internal/server/storage/memory"
 	"github.com/go-chi/chi"
+	"go.uber.org/zap"
+
 	"github.com/stretchr/testify/assert"
 )
 
+func f(v float64) *float64 {
+	return &v
+}
+
+func i(v int64) *int64 {
+	return &v
+}
+
+type mockLogger struct{}
+
+func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
+
+func TestHandler_SetJSONMetric(t *testing.T) {
+	strg := memory.NewMemStorage()
+	metricService := services.NewMetricService(strg)
+
+	handler := NewHandler(metricService, &mockLogger{})
+	server := httptest.NewServer(http.HandlerFunc(handler.SetJSONMetric))
+	defer server.Close()
+
+	gaugeValue := f(42.1)
+	counterValue := i(10)
+
+	testCases := []struct {
+		name     string
+		request  models.Metrics
+		expected models.Metrics
+		status   int
+	}{
+		{
+			name:     "положительный тест: установить gauge метрику",
+			request:  models.Metrics{ID: "foo", MType: models.GaugeType, Value: gaugeValue},
+			expected: models.Metrics{ID: "foo", MType: models.GaugeType, Value: gaugeValue},
+			status:   http.StatusOK,
+		},
+		{
+			name:     "положительный тест: установить counter метрику",
+			request:  models.Metrics{ID: "bar", MType: models.CounterType, Delta: counterValue},
+			expected: models.Metrics{ID: "bar", MType: models.CounterType, Delta: counterValue},
+			status:   http.StatusOK,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reqBody, err := json.Marshal(tc.request)
+			assert.NoError(t, err)
+
+			req, err := http.NewRequest(http.MethodPost, server.URL, bytes.NewReader(reqBody))
+			assert.NoError(t, err)
+
+			resp, err := http.DefaultClient.Do(req)
+			assert.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.status, resp.StatusCode)
+
+			var actual models.Metrics
+			err = json.NewDecoder(resp.Body).Decode(&actual)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestHandler_GetMetric(t *testing.T) {
+	strg := memory.NewMemStorage()
+	metricService := services.NewMetricService(strg)
+	metricService.SetJSONMetric(models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
+	metricService.SetJSONMetric(models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
+	h := NewHandler(metricService, &mockLogger{})
+
+	tests := []struct {
+		name           string
+		requestBody    string
+		expectedStatus int
+		expectedHeader string
+		expectedBody   string
+	}{
+		{
+			name:           "отрицательный тест: невалидный JSON",
+			requestBody:    `{"id": "cpu", "type": "gauge", value: 0.5}`, // нет кавычек у ключа "value"
+			expectedStatus: http.StatusBadRequest,
+			expectedHeader: "text/plain; charset=utf-8",
+			expectedBody:   "неверный формат запроса\n",
+		},
+		{
+			name:           "отрицательный тест: невалидный тип метрики",
+			requestBody:    `{"id": "cpu", "type": "invalid"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedHeader: "text/plain; charset=utf-8",
+			expectedBody:   "неверный формат запроса\n",
+		},
+		{
+			name:           "отрицательный тест: метрика не найдена",
+			requestBody:    `{"id": "disk", "type": "gauge"}`,
+			expectedStatus: http.StatusNotFound,
+			expectedHeader: "text/plain; charset=utf-8",
+			expectedBody:   "метрика не найдена\n",
+		},
+		{
+			name:           "положительный тест: получение существующей метрики gauge",
+			requestBody:    `{"id": "cpu", "type": "gauge"}`,
+			expectedStatus: http.StatusOK,
+			expectedHeader: "application/json",
+			expectedBody:   `{"id":"cpu","type":"gauge","value":0.5}`,
+		},
+		{
+			name:           "положительный тест: получение существующей метрики counter",
+			requestBody:    `{"id": "memory", "type": "counter"}`,
+			expectedStatus: http.StatusOK,
+			expectedHeader: "application/json",
+			expectedBody:   `{"id":"memory","type":"counter","delta":10}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req, err := http.NewRequest("POST", "/value", bytes.NewBufferString(test.requestBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+
+			h.GetMetric(rr, req)
+
+			assert.Equal(t, test.expectedStatus, rr.Code)
+
+			assert.Contains(t, rr.Header().Get("Content-Type"), test.expectedHeader)
+
+			assert.Equal(t, test.expectedBody, rr.Body.String())
+		})
+	}
+}
+
 type storageMock struct{}
 
-func (sm storageMock) GetGaugeMetric(name string) (util.Gauge, error) {
+func (sm storageMock) GetGaugeMetric(name string) (models.Gauge, error) {
 	if name == "Alloc" {
 		return 50.1, nil
 	}
@@ -23,7 +166,7 @@ func (sm storageMock) GetGaugeMetric(name string) (util.Gauge, error) {
 	return 0, errors.New("gauge metric not found")
 }
 
-func (sm storageMock) GetCounterMetric(name string) (util.Counter, error) {
+func (sm storageMock) GetCounterMetric(name string) (models.Counter, error) {
 	if name == "PollCounter" {
 		return 50, nil
 	}
@@ -31,16 +174,22 @@ func (sm storageMock) GetCounterMetric(name string) (util.Counter, error) {
 	return 0, errors.New("counter metric not found")
 }
 
-func (sm storageMock) SetGaugeMetric(name string, value util.Gauge) {
+func (sm storageMock) SetGaugeMetric(name string, value models.Gauge) {
 
 }
 
-func (sm storageMock) SetCounterMetric(name string, value util.Counter) {
+func (sm storageMock) SetCounterMetric(name string, value models.Counter) {
 
 }
 
 func (sm storageMock) GetAllMetrics() []string {
 	return []string{}
+}
+
+func (sm storageMock) SetMetric(m models.Metrics) {}
+
+func (sm storageMock) GetMetric(name string) (models.Metrics, error) {
+	return models.Metrics{}, nil
 }
 
 func TestWithSetMetricHandle(t *testing.T) {
@@ -50,7 +199,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 	}
 
 	strg := storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	tests := []struct {
 		name string
@@ -80,7 +229,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, test.url, nil)
 			w := httptest.NewRecorder()
 
-			handler := NewHandler(metricService)
+			handler := NewHandler(metricService, &mockLogger{})
 			handler.SetMetric(w, request)
 
 			res := w.Result()
@@ -95,11 +244,11 @@ func TestWithSetMetricHandle(t *testing.T) {
 
 func TestWithSetMetricHandle2(t *testing.T) {
 	strg := storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
 	r := chi.NewRouter()
 
-	handler := NewHandler(metricService)
+	handler := NewHandler(metricService, &mockLogger{})
 
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.SetMetric)
 
@@ -152,9 +301,9 @@ func TestWithSetMetricHandle2(t *testing.T) {
 
 func TestWithGetValueMetricHandle(t *testing.T) {
 	strg := &storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
-	handler := NewHandler(metricService)
+	handler := NewHandler(metricService, &mockLogger{})
 
 	r := chi.NewRouter()
 	r.Get("/{metricType}/{metricName}", handler.GetValueMetric)
@@ -222,9 +371,9 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 
 func TestWithGetMetricsHandle(t *testing.T) {
 	strg := storageMock{}
-	metricService := metric.NewMetricService(strg)
+	metricService := services.NewMetricService(strg)
 
-	handler := NewHandler(metricService)
+	handler := NewHandler(metricService, &mockLogger{})
 
 	r := chi.NewRouter()
 	r.Get("/", handler.GetMetrics)

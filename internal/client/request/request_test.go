@@ -1,9 +1,9 @@
-package util
+package request
 
 import (
 	"testing"
 
-	"github.com/NikolosHGW/metric/internal/util"
+	"github.com/NikolosHGW/metric/internal/models"
 )
 
 func Test_getStringValue(t *testing.T) {
@@ -12,8 +12,8 @@ func Test_getStringValue(t *testing.T) {
 		v        interface{}
 		expected string
 	}{
-		{"корректный случай #1", util.Gauge(3.14), "3.14"},
-		{"корректный случай #2", util.Counter(42), "42"},
+		{"корректный случай #1", models.Gauge(3.14), "3.14"},
+		{"корректный случай #2", models.Counter(42), "42"},
 		{"некорректный тип", "foo", ""},
 		{"нулевое значение", nil, ""},
 	}
@@ -37,13 +37,13 @@ func Test_getResultUrl(t *testing.T) {
 		metricValue string
 		expected    string
 	}{
-		{"корректный случай #1", "localhost:8080", util.GaugeType, "Alloc", "123.45", "http://localhost:8080/update/gauge/Alloc/123.45"},
-		{"корректный случай #2", "localhost:8080", util.CounterType, "PollCount", "42", "http://localhost:8080/update/counter/PollCount/42"},
+		{"корректный случай #1", "localhost:8080", models.GaugeType, "Alloc", "123.45", "http://localhost:8080/update/gauge/Alloc/123.45"},
+		{"корректный случай #2", "localhost:8080", models.CounterType, "PollCount", "42", "http://localhost:8080/update/counter/PollCount/42"},
 		{"пустой тип метрики", "localhost:8080", "", "Alloc", "123.45", "http://localhost:8080/update/Alloc/123.45"},
-		{"пустое имя метрики", "localhost:8080", util.GaugeType, "", "123.45", "http://localhost:8080/update/gauge/123.45"},
-		{"пустое значение метрики", "localhost:8080", util.CounterType, "PollCounter", "", "http://localhost:8080/update/counter/PollCounter/"},
+		{"пустое имя метрики", "localhost:8080", models.GaugeType, "", "123.45", "http://localhost:8080/update/gauge/123.45"},
+		{"пустое значение метрики", "localhost:8080", models.CounterType, "PollCounter", "", "http://localhost:8080/update/counter/PollCounter/"},
 		{"пустые строки", "localhost:8080", "", "", "", "http://localhost:8080/update/"},
-		{"пустой адрес", "", util.GaugeType, "Alloc", "123.45", "http:///update/gauge/Alloc/123.45"},
+		{"пустой адрес", "", models.GaugeType, "Alloc", "123.45", "http:///update/gauge/Alloc/123.45"},
 	}
 
 	for _, tc := range testCases {

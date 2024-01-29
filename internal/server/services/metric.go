@@ -1,17 +1,19 @@
-package metric
+package services
 
 import (
 	"fmt"
 	"strconv"
 
-	"github.com/NikolosHGW/metric/internal/util"
+	"github.com/NikolosHGW/metric/internal/models"
 )
 
 type repository interface {
-	SetGaugeMetric(string, util.Gauge)
-	SetCounterMetric(string, util.Counter)
-	GetGaugeMetric(string) (util.Gauge, error)
-	GetCounterMetric(string) (util.Counter, error)
+	SetMetric(models.Metrics)
+	GetMetric(string) (models.Metrics, error)
+	SetGaugeMetric(string, models.Gauge)
+	SetCounterMetric(string, models.Counter)
+	GetGaugeMetric(string) (models.Gauge, error)
+	GetCounterMetric(string) (models.Counter, error)
 	GetAllMetrics() []string
 }
 
@@ -26,19 +28,19 @@ func NewMetricService(repo repository) *MetricService {
 }
 
 func (ms MetricService) SetMetric(metricType, metricName, metricValue string) {
-	if metricType == util.CounterType {
+	if metricType == models.CounterType {
 		value, _ := strconv.ParseInt(metricValue, 10, 64)
-		ms.strg.SetCounterMetric(metricName, util.Counter(value))
+		ms.strg.SetCounterMetric(metricName, models.Counter(value))
 	}
 
-	if metricType == util.GaugeType {
+	if metricType == models.GaugeType {
 		value, _ := strconv.ParseFloat(metricValue, 64)
-		ms.strg.SetGaugeMetric(metricName, util.Gauge(value))
+		ms.strg.SetGaugeMetric(metricName, models.Gauge(value))
 	}
 }
 
 func (ms MetricService) GetMetricValue(metricType, metricName string) (string, error) {
-	if metricType == util.GaugeType {
+	if metricType == models.GaugeType {
 		metricValue, err := ms.strg.GetGaugeMetric(metricName)
 
 		return fmt.Sprintf("%v", metricValue), err
@@ -47,6 +49,14 @@ func (ms MetricService) GetMetricValue(metricType, metricName string) (string, e
 	metricValue, err := ms.strg.GetCounterMetric(metricName)
 
 	return fmt.Sprintf("%v", metricValue), err
+}
+
+func (ms *MetricService) SetJSONMetric(m models.Metrics) {
+	ms.strg.SetMetric(m)
+}
+
+func (ms MetricService) GetMetricByName(name string) (models.Metrics, error) {
+	return ms.strg.GetMetric(name)
 }
 
 func (ms MetricService) GetAllMetrics() []string {
