@@ -69,7 +69,7 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricsModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
-		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric cannot decode request JSON body", zap.Error(err))
+		logger.Log.Info("cannot decode request JSON body", zap.Error(err))
 		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 		return
 	}
@@ -79,14 +79,14 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID)
 	if err != nil {
-		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric", zap.Error(err))
+		logger.Log.Info("ошибка в GetMetricByName", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
 	resp, err := json.Marshal(updatedMetric)
 	if err != nil {
-		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_SetMetric cannot encode to JSON", zap.Error(err))
+		logger.Log.Info("cannot encode to JSON", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
@@ -100,7 +100,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricsModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
-		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_GetMetric cannot decode request JSON body", zap.Error(err))
+		logger.Log.Info("cannot decode request JSON body", zap.Error(err))
 		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 
 		return
@@ -109,7 +109,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.metricService.GetMetricByName(metricModel.ID)
 	if err != nil {
-		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_GetMetric metric not found", zap.Error(err))
+		logger.Log.Info("metric not found", zap.Error(err))
 		http.Error(w, "метрика не найдена", http.StatusNotFound)
 
 		return
@@ -117,7 +117,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(metric)
 	if err != nil {
-		logger.Log.Debug("metric/internal/server/handlers/handlers.go Handler_GetMetric cannot encode to JSON", zap.Error(err))
+		logger.Log.Info("cannot encode to JSON", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
