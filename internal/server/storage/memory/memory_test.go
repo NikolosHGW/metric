@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/NikolosHGW/metric/internal/models"
-	"github.com/NikolosHGW/metric/internal/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +20,7 @@ func TestMemStorage_SetMetric(t *testing.T) {
 
 	metric, exist := ms.metrics["foo"]
 	assert.True(t, exist, "метрика не найдена в хранилище")
-	assert.Equal(t, util.Gauge(*mockModel.Value), metric.gauge, "метрика не соответствует установленной")
+	assert.Equal(t, models.Gauge(*mockModel.Value), metric.gauge, "метрика не соответствует установленной")
 }
 
 func TestMemStorage_GetMetric(t *testing.T) {
@@ -30,19 +29,19 @@ func TestMemStorage_GetMetric(t *testing.T) {
 	expectedMetric := map[string]models.Metrics{
 		"foo": {
 			ID:    "foo",
-			MType: util.GaugeType,
+			MType: models.GaugeType,
 			Value: &fooValue,
 		},
 		"bar": {
 			ID:    "bar",
-			MType: util.CounterType,
+			MType: models.CounterType,
 			Delta: &barValue,
 		},
 	}
 	ms := &MemStorage{
 		metrics: map[string]metricValue{
-			"foo": {gauge: util.Gauge(fooValue)},
-			"bar": {counter: util.Counter(barValue)},
+			"foo": {gauge: models.Gauge(fooValue)},
+			"bar": {counter: models.Counter(barValue)},
 		},
 	}
 
@@ -96,7 +95,7 @@ func TestMemStorage_GetGaugeMetric(t *testing.T) {
 	testCases := []struct {
 		name       string
 		metricName string
-		expected   util.Gauge
+		expected   models.Gauge
 		err        error
 	}{
 		{"положительный тест: достать существующую метрику foo", "foo", 42.1, nil},
@@ -121,7 +120,7 @@ func TestMemStorage_GetCounterMetric(t *testing.T) {
 	testCases := []struct {
 		name       string
 		metricName string
-		expected   util.Counter
+		expected   models.Counter
 		err        error
 	}{
 		{"положительный тест: достать существующую метрику foo", "foo", 42, nil},
@@ -144,7 +143,7 @@ func TestMemStorage_SetGaugeMetric(t *testing.T) {
 	testCases := []struct {
 		name       string
 		metricName string
-		value      util.Gauge
+		value      models.Gauge
 	}{
 		{"положительный тест: устаналиваем метрику foo", "foo", 42.1},
 		{"положительный тест: устаналиваем метрику bar", "bar", 100.01},
@@ -167,7 +166,7 @@ func TestMemStorage_SetCounterMetric(t *testing.T) {
 	testCases := []struct {
 		name       string
 		metricName string
-		value      util.Counter
+		value      models.Counter
 	}{
 		{"положительный тест: устаналиваем метрику foo", "foo", 42},
 		{"положительный тест: устаналиваем метрику bar", "bar", 100},
@@ -187,7 +186,7 @@ func TestMemStorage_SetCounterMetric(t *testing.T) {
 func TestMemStorage_GetAllMetrics(t *testing.T) {
 	type data struct {
 		metricName  string
-		metricValue util.Gauge
+		metricValue models.Gauge
 	}
 
 	testCases := []struct {

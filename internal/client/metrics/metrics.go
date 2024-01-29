@@ -4,13 +4,13 @@ import (
 	"math/rand"
 	"runtime"
 
-	"github.com/NikolosHGW/metric/internal/util"
+	"github.com/NikolosHGW/metric/internal/models"
 )
 
 type Metrics struct {
 	runtime.MemStats
-	PollCount   util.Counter
-	RandomValue util.Gauge
+	PollCount   models.Counter
+	RandomValue models.Gauge
 }
 
 func (m *Metrics) IncPollCount() {
@@ -18,7 +18,7 @@ func (m *Metrics) IncPollCount() {
 }
 
 func (m *Metrics) UpdateRandomValue() {
-	m.RandomValue = util.Gauge(rand.Float64())
+	m.RandomValue = models.Gauge(rand.Float64())
 }
 
 func (m *Metrics) RefreshMetrics() {
@@ -27,35 +27,35 @@ func (m *Metrics) RefreshMetrics() {
 
 func (m Metrics) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
-		util.Alloc:         util.Gauge(m.Alloc),
-		util.BuckHashSys:   util.Gauge(m.BuckHashSys),
-		util.Frees:         util.Gauge(m.Frees),
-		util.GCCPUFraction: util.Gauge(m.GCCPUFraction),
-		util.GCSys:         util.Gauge(m.GCSys),
-		util.HeapAlloc:     util.Gauge(m.HeapAlloc),
-		util.HeapIdle:      util.Gauge(m.HeapIdle),
-		util.HeapInuse:     util.Gauge(m.HeapInuse),
-		util.HeapObjects:   util.Gauge(m.HeapObjects),
-		util.HeapReleased:  util.Gauge(m.HeapReleased),
-		util.HeapSys:       util.Gauge(m.HeapSys),
-		util.LastGC:        util.Gauge(m.LastGC),
-		util.Lookups:       util.Gauge(m.Lookups),
-		util.MCacheInuse:   util.Gauge(m.MCacheInuse),
-		util.MCacheSys:     util.Gauge(m.MCacheSys),
-		util.MSpanInuse:    util.Gauge(m.MSpanInuse),
-		util.MSpanSys:      util.Gauge(m.MSpanSys),
-		util.Mallocs:       util.Gauge(m.Mallocs),
-		util.NextGC:        util.Gauge(m.NextGC),
-		util.NumForcedGC:   util.Gauge(m.NumForcedGC),
-		util.NumGC:         util.Gauge(m.NumGC),
-		util.OtherSys:      util.Gauge(m.OtherSys),
-		util.PauseTotalNs:  util.Gauge(m.PauseTotalNs),
-		util.StackInuse:    util.Gauge(m.StackInuse),
-		util.StackSys:      util.Gauge(m.StackSys),
-		util.Sys:           util.Gauge(m.Sys),
-		util.TotalAlloc:    util.Gauge(m.TotalAlloc),
-		util.PollCount:     util.Counter(m.PollCount),
-		util.RandomValue:   util.Gauge(m.RandomValue),
+		models.Alloc:         models.Gauge(m.Alloc),
+		models.BuckHashSys:   models.Gauge(m.BuckHashSys),
+		models.Frees:         models.Gauge(m.Frees),
+		models.GCCPUFraction: models.Gauge(m.GCCPUFraction),
+		models.GCSys:         models.Gauge(m.GCSys),
+		models.HeapAlloc:     models.Gauge(m.HeapAlloc),
+		models.HeapIdle:      models.Gauge(m.HeapIdle),
+		models.HeapInuse:     models.Gauge(m.HeapInuse),
+		models.HeapObjects:   models.Gauge(m.HeapObjects),
+		models.HeapReleased:  models.Gauge(m.HeapReleased),
+		models.HeapSys:       models.Gauge(m.HeapSys),
+		models.LastGC:        models.Gauge(m.LastGC),
+		models.Lookups:       models.Gauge(m.Lookups),
+		models.MCacheInuse:   models.Gauge(m.MCacheInuse),
+		models.MCacheSys:     models.Gauge(m.MCacheSys),
+		models.MSpanInuse:    models.Gauge(m.MSpanInuse),
+		models.MSpanSys:      models.Gauge(m.MSpanSys),
+		models.Mallocs:       models.Gauge(m.Mallocs),
+		models.NextGC:        models.Gauge(m.NextGC),
+		models.NumForcedGC:   models.Gauge(m.NumForcedGC),
+		models.NumGC:         models.Gauge(m.NumGC),
+		models.OtherSys:      models.Gauge(m.OtherSys),
+		models.PauseTotalNs:  models.Gauge(m.PauseTotalNs),
+		models.StackInuse:    models.Gauge(m.StackInuse),
+		models.StackSys:      models.Gauge(m.StackSys),
+		models.Sys:           models.Gauge(m.Sys),
+		models.TotalAlloc:    models.Gauge(m.TotalAlloc),
+		models.PollCount:     models.Counter(m.PollCount),
+		models.RandomValue:   models.Gauge(m.RandomValue),
 	}
 }
 

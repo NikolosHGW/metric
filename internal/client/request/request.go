@@ -1,4 +1,4 @@
-package util
+package request
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/NikolosHGW/metric/internal/models"
-	"github.com/NikolosHGW/metric/internal/util"
 )
 
 type ClientMetrics interface {
@@ -19,6 +18,40 @@ type ClientMetrics interface {
 	UpdateRandomValue()
 	RefreshMetrics()
 	GetMetrics() map[string]interface{}
+}
+
+func GetMetricTypeMap() map[string]string {
+	return map[string]string{
+		models.Alloc:         models.GaugeType,
+		models.BuckHashSys:   models.GaugeType,
+		models.Frees:         models.GaugeType,
+		models.GCCPUFraction: models.GaugeType,
+		models.GCSys:         models.GaugeType,
+		models.HeapAlloc:     models.GaugeType,
+		models.HeapIdle:      models.GaugeType,
+		models.HeapInuse:     models.GaugeType,
+		models.HeapObjects:   models.GaugeType,
+		models.HeapReleased:  models.GaugeType,
+		models.HeapSys:       models.GaugeType,
+		models.LastGC:        models.GaugeType,
+		models.Lookups:       models.GaugeType,
+		models.MCacheInuse:   models.GaugeType,
+		models.MCacheSys:     models.GaugeType,
+		models.MSpanInuse:    models.GaugeType,
+		models.MSpanSys:      models.GaugeType,
+		models.Mallocs:       models.GaugeType,
+		models.NextGC:        models.GaugeType,
+		models.NumForcedGC:   models.GaugeType,
+		models.NumGC:         models.GaugeType,
+		models.OtherSys:      models.GaugeType,
+		models.PauseTotalNs:  models.GaugeType,
+		models.StackInuse:    models.GaugeType,
+		models.StackSys:      models.GaugeType,
+		models.Sys:           models.GaugeType,
+		models.TotalAlloc:    models.GaugeType,
+		models.PollCount:     models.CounterType,
+		models.RandomValue:   models.GaugeType,
+	}
 }
 
 func CollectMetrics(m ClientMetrics, pollInterval int) {
@@ -32,7 +65,7 @@ func CollectMetrics(m ClientMetrics, pollInterval int) {
 }
 
 func SendMetrics(m ClientMetrics, reportInterval int, host string) {
-	metricTypeMap := util.GetMetricTypeMap()
+	metricTypeMap := GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
 			result := getStringValue(v)
@@ -51,9 +84,9 @@ func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 
 func getStringValue(v interface{}) string {
 	switch v2 := v.(type) {
-	case util.Gauge:
+	case models.Gauge:
 		return strconv.FormatFloat(float64(v2), 'f', -1, 64)
-	case util.Counter:
+	case models.Counter:
 		return strconv.Itoa(int(v2))
 	}
 
@@ -82,7 +115,7 @@ func getResultURL(host, metricType, metricName, metricValue string) string {
 }
 
 func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
-	metricTypeMap := util.GetMetricTypeMap()
+	metricTypeMap := GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
 			delta := getIntValue(metricTypeMap[k], v)
@@ -146,8 +179,8 @@ func getURL(host string) string {
 }
 
 func getIntValue(metricType string, value interface{}) int64 {
-	if metricType == util.CounterType {
-		v, ok := value.(util.Counter)
+	if metricType == models.CounterType {
+		v, ok := value.(models.Counter)
 		if ok {
 			return int64(v)
 		}
@@ -157,8 +190,8 @@ func getIntValue(metricType string, value interface{}) int64 {
 }
 
 func getFloatValue(metricType string, value interface{}) float64 {
-	if metricType == util.GaugeType {
-		v, ok := value.(util.Gauge)
+	if metricType == models.GaugeType {
+		v, ok := value.(models.Gauge)
 		if ok {
 			return float64(v)
 		}

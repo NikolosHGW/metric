@@ -13,7 +13,6 @@ import (
 	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/server/services"
 	"github.com/NikolosHGW/metric/internal/server/storage/memory"
-	"github.com/NikolosHGW/metric/internal/util"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
 
@@ -51,14 +50,14 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 	}{
 		{
 			name:     "положительный тест: установить gauge метрику",
-			request:  models.Metrics{ID: "foo", MType: util.GaugeType, Value: gaugeValue},
-			expected: models.Metrics{ID: "foo", MType: util.GaugeType, Value: gaugeValue},
+			request:  models.Metrics{ID: "foo", MType: models.GaugeType, Value: gaugeValue},
+			expected: models.Metrics{ID: "foo", MType: models.GaugeType, Value: gaugeValue},
 			status:   http.StatusOK,
 		},
 		{
 			name:     "положительный тест: установить counter метрику",
-			request:  models.Metrics{ID: "bar", MType: util.CounterType, Delta: counterValue},
-			expected: models.Metrics{ID: "bar", MType: util.CounterType, Delta: counterValue},
+			request:  models.Metrics{ID: "bar", MType: models.CounterType, Delta: counterValue},
+			expected: models.Metrics{ID: "bar", MType: models.CounterType, Delta: counterValue},
 			status:   http.StatusOK,
 		},
 	}
@@ -159,7 +158,7 @@ func TestHandler_GetMetric(t *testing.T) {
 
 type storageMock struct{}
 
-func (sm storageMock) GetGaugeMetric(name string) (util.Gauge, error) {
+func (sm storageMock) GetGaugeMetric(name string) (models.Gauge, error) {
 	if name == "Alloc" {
 		return 50.1, nil
 	}
@@ -167,7 +166,7 @@ func (sm storageMock) GetGaugeMetric(name string) (util.Gauge, error) {
 	return 0, errors.New("gauge metric not found")
 }
 
-func (sm storageMock) GetCounterMetric(name string) (util.Counter, error) {
+func (sm storageMock) GetCounterMetric(name string) (models.Counter, error) {
 	if name == "PollCounter" {
 		return 50, nil
 	}
@@ -175,11 +174,11 @@ func (sm storageMock) GetCounterMetric(name string) (util.Counter, error) {
 	return 0, errors.New("counter metric not found")
 }
 
-func (sm storageMock) SetGaugeMetric(name string, value util.Gauge) {
+func (sm storageMock) SetGaugeMetric(name string, value models.Gauge) {
 
 }
 
-func (sm storageMock) SetCounterMetric(name string, value util.Counter) {
+func (sm storageMock) SetCounterMetric(name string, value models.Counter) {
 
 }
 

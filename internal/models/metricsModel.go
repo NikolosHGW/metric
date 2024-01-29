@@ -4,8 +4,46 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+)
 
-	"github.com/NikolosHGW/metric/internal/util"
+const (
+	GaugeType   = "gauge"
+	CounterType = "counter"
+)
+
+type Gauge float64
+type Counter int64
+
+const (
+	Alloc         = "Alloc"
+	BuckHashSys   = "BuckHashSys"
+	Frees         = "Frees"
+	GCCPUFraction = "GCCPUFraction"
+	GCSys         = "GCSys"
+	HeapAlloc     = "HeapAlloc"
+	HeapIdle      = "HeapIdle"
+	HeapInuse     = "HeapInuse"
+	HeapObjects   = "HeapObjects"
+	HeapReleased  = "HeapReleased"
+	HeapSys       = "HeapSys"
+	LastGC        = "LastGC"
+	Lookups       = "Lookups"
+	MCacheInuse   = "MCacheInuse"
+	MCacheSys     = "MCacheSys"
+	MSpanInuse    = "MSpanInuse"
+	MSpanSys      = "MSpanSys"
+	Mallocs       = "Mallocs"
+	NextGC        = "NextGC"
+	NumForcedGC   = "NumForcedGC"
+	NumGC         = "NumGC"
+	OtherSys      = "OtherSys"
+	PauseTotalNs  = "PauseTotalNs"
+	StackInuse    = "StackInuse"
+	StackSys      = "StackSys"
+	Sys           = "Sys"
+	TotalAlloc    = "TotalAlloc"
+	PollCount     = "PollCount"
+	RandomValue   = "RandomValue"
 )
 
 type Metrics struct {
@@ -25,7 +63,7 @@ func (m *Metrics) DecodeMetricRequest(body io.ReadCloser) error {
 		return err
 	}
 
-	if m.MType != util.GaugeType && m.MType != util.CounterType {
+	if m.MType != GaugeType && m.MType != CounterType {
 		return fmt.Errorf("invalid metric type: %s", m.MType)
 	}
 
