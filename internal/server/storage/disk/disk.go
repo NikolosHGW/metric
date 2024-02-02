@@ -69,7 +69,7 @@ func (c *Consumer) Close() error {
 }
 
 type customLogger interface {
-	Debug(string, ...zap.Field)
+	Info(string, ...zap.Field)
 }
 
 type DiskStorage struct {
@@ -89,13 +89,13 @@ func NewDiskStorage(strg Storage, log customLogger, fileName string) *DiskStorag
 func (ds DiskStorage) WriteToDisk() {
 	Producer, err := NewProducer(ds.fileName)
 	if err != nil {
-		ds.log.Debug("metric/internal/server/storage/disk/disk.go WriteToDisk cannot open file", zap.Error(err))
+		ds.log.Info("cannot open file", zap.Error(err))
 	}
 	defer Producer.Close()
 
 	for _, metric := range ds.strg.GetMetricsModels() {
 		if err := Producer.WriteMetric(&metric); err != nil {
-			ds.log.Debug("metric/internal/server/storage/disk/disk.go WriteToDisk cannot encode", zap.Error(err))
+			ds.log.Info("cannot encode", zap.Error(err))
 		}
 	}
 }
@@ -103,14 +103,14 @@ func (ds DiskStorage) WriteToDisk() {
 func (ds DiskStorage) WriteToStorage() {
 	Consumer, err := NewConsumer(ds.fileName)
 	if err != nil {
-		ds.log.Debug("metric/internal/server/storage/disk/disk.go WriteToStorage cannot open file", zap.Error(err))
+		ds.log.Info("cannot open file", zap.Error(err))
 	}
 	defer Consumer.Close()
 
 	for {
 		metric, err := Consumer.ReadMetric()
 		if err != nil {
-			ds.log.Debug("metric/internal/server/storage/disk/disk.go WriteToStorage cannot decode", zap.Error(err))
+			ds.log.Info("cannot decode", zap.Error(err))
 			break
 		}
 		ds.strg.SetMetric(*metric)

@@ -15,6 +15,7 @@ type Handler interface {
 	GetMetric(http.ResponseWriter, *http.Request)
 	GetValueMetric(http.ResponseWriter, *http.Request)
 	GetMetrics(http.ResponseWriter, *http.Request)
+	PingDb(http.ResponseWriter, *http.Request)
 }
 
 func InitRouter(handler Handler) *chi.Mux {
@@ -25,6 +26,7 @@ func InitRouter(handler Handler) *chi.Mux {
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetMetrics)
+		r.Get("/ping", handler.PingDb)
 
 		update.InitUpdateRoutes(r, handler.SetMetric, handler.SetJSONMetric)
 		value.InitValueRoutes(r, handler.GetValueMetric, handler.GetMetric)

@@ -29,7 +29,7 @@ func i(v int64) *int64 {
 
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
+func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
 
 func TestHandler_SetJSONMetric(t *testing.T) {
 	strg := memory.NewMemStorage()

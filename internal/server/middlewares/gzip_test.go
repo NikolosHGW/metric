@@ -17,7 +17,7 @@ import (
 
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
+func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
 
 func TestWithGzip(t *testing.T) {
 	strg := memory.NewMemStorage()

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/logger"
 	"github.com/NikolosHGW/metric/internal/server/routes"
@@ -25,6 +26,11 @@ func run() error {
 
 	if err := logger.Initialize(config.LogLevel); err != nil {
 		return err
+	}
+
+	db.InitDB()
+	if db.DB != nil {
+		defer db.DB.Close()
 	}
 
 	strg := memory.NewMemStorage()

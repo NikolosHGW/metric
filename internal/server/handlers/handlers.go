@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"github.com/NikolosHGW/metric/internal/models"
-	"github.com/NikolosHGW/metric/internal/server/logger"
+	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/go-chi/chi"
 
 	"go.uber.org/zap"
@@ -23,7 +23,7 @@ type metricService interface {
 }
 
 type customLogger interface {
-	Debug(string, ...zap.Field)
+	Info(string, ...zap.Field)
 }
 
 type Handler struct {
@@ -69,7 +69,7 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricsModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
-		logger.Log.Info("cannot decode request JSON body", zap.Error(err))
+		h.logger.Info("cannot decode request JSON body", zap.Error(err))
 		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 		return
 	}
@@ -79,14 +79,14 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID)
 	if err != nil {
-		logger.Log.Info("ошибка в GetMetricByName", zap.Error(err))
+		h.logger.Info("ошибка в GetMetricByName", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
 	resp, err := json.Marshal(updatedMetric)
 	if err != nil {
-		logger.Log.Info("cannot encode to JSON", zap.Error(err))
+		h.logger.Info("cannot encode to JSON", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
@@ -100,7 +100,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricsModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
-		logger.Log.Info("cannot decode request JSON body", zap.Error(err))
+		h.logger.Info("cannot decode request JSON body", zap.Error(err))
 		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 
 		return
@@ -109,7 +109,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.metricService.GetMetricByName(metricModel.ID)
 	if err != nil {
-		logger.Log.Info("metric not found", zap.Error(err))
+		h.logger.Info("metric not found", zap.Error(err))
 		http.Error(w, "метрика не найдена", http.StatusNotFound)
 
 		return
@@ -117,7 +117,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(metric)
 	if err != nil {
-		logger.Log.Info("cannot encode to JSON", zap.Error(err))
+		h.logger.Info("cannot encode to JSON", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
@@ -149,4 +149,12 @@ func BasePath() string {
 	_, b, _, _ := runtime.Caller(0)
 
 	return filepath.Join(filepath.Dir(b), "../../..")
+}
+
+func (h Handler) PingDb(w http.ResponseWriter, r *http.Request) {
+	if db.DB != nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.WriteHeader(http.StatusInternalServerError)
 }
