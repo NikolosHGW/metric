@@ -9,8 +9,8 @@ import (
 
 var DB *sqlx.DB
 
-func InitDB() {
-	db, err := sqlx.Connect("postgres", "user=nikolos password=abc123 dbname=metric sslmode=disable")
+func InitDB(dataSourceName string) {
+	db, err := sqlx.Connect("postgres", dataSourceName)
 	if err != nil {
 		logger.Log.Info("connect to postgres", zap.Error(err))
 

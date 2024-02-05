@@ -28,7 +28,7 @@ func run() error {
 		return err
 	}
 
-	db.InitDB()
+	db.InitDB(config.GetDBConnection())
 	if db.DB != nil {
 		defer db.DB.Close()
 	}

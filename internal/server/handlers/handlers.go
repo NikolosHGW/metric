@@ -151,7 +151,7 @@ func BasePath() string {
 	return filepath.Join(filepath.Dir(b), "../../..")
 }
 
-func (h Handler) PingDb(w http.ResponseWriter, r *http.Request) {
+func (h Handler) PingDB(w http.ResponseWriter, r *http.Request) {
 	if db.DB != nil {
 		w.WriteHeader(http.StatusOK)
 		return
