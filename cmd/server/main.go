@@ -10,8 +10,7 @@ import (
 	"github.com/NikolosHGW/metric/internal/server/logger"
 	"github.com/NikolosHGW/metric/internal/server/routes"
 	"github.com/NikolosHGW/metric/internal/server/services"
-	"github.com/NikolosHGW/metric/internal/server/storage/disk"
-	"github.com/NikolosHGW/metric/internal/server/storage/memory"
+	"github.com/NikolosHGW/metric/internal/server/storage"
 	"go.uber.org/zap"
 )
 
@@ -36,10 +35,10 @@ func run() error {
 		defer db.DB.Close()
 	}
 
-	strg := memory.NewMemStorage()
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 	handler := handlers.NewHandler(metricService, logger.Log)
-	diskStrg := disk.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
+	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
 	go diskService.CollectMetrics()

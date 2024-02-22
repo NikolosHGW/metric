@@ -12,7 +12,7 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/server/services"
-	"github.com/NikolosHGW/metric/internal/server/storage/memory"
+	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
 
@@ -32,7 +32,7 @@ type mockLogger struct{}
 func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
 
 func TestHandler_SetJSONMetric(t *testing.T) {
-	strg := memory.NewMemStorage()
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 
 	handler := NewHandler(metricService, &mockLogger{})
@@ -86,7 +86,7 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 }
 
 func TestHandler_GetMetric(t *testing.T) {
-	strg := memory.NewMemStorage()
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 	metricService.SetJSONMetric(models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
 	metricService.SetJSONMetric(models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
