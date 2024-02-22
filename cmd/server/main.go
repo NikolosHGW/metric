@@ -28,7 +28,10 @@ func run() error {
 		return err
 	}
 
-	db.InitDB(config.GetDBConnection())
+	err := db.InitDB(config.GetDBConnection())
+	if err != nil {
+		logger.Log.Info("init db", zap.Error(err))
+	}
 	if db.DB != nil {
 		defer db.DB.Close()
 	}
