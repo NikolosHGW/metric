@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -15,11 +16,11 @@ import (
 )
 
 type metricService interface {
-	SetMetric(string, string, string)
-	SetJSONMetric(models.Metrics)
-	GetMetricValue(string, string) (string, error)
-	GetMetricByName(string) (models.Metrics, error)
-	GetAllMetrics() []string
+	SetMetric(string, string, string, context.Context)
+	SetJSONMetric(models.Metrics, context.Context)
+	GetMetricValue(string, string, context.Context) (string, error)
+	GetMetricByName(string, context.Context) (models.Metrics, error)
+	GetAllMetrics(context.Context) []string
 }
 
 type customLogger interface {
@@ -42,7 +43,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	h.metricService.SetMetric(metricType, metricName, metricValue)
+	h.metricService.SetMetric(metricType, metricName, metricValue, r.Context())
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Add("Content-Type", "charset=utf-8")
@@ -52,7 +53,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
-	metricValue, err := h.metricService.GetMetricValue(metricType, metricName)
+	metricValue, err := h.metricService.GetMetricValue(metricType, metricName, r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 
@@ -75,9 +76,9 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	h.metricService.SetJSONMetric(*metricModel)
+	h.metricService.SetJSONMetric(*metricModel, r.Context())
 
-	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID)
+	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID, r.Context())
 	if err != nil {
 		h.logger.Info("ошибка в GetMetricByName", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
@@ -107,7 +108,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	metric, err := h.metricService.GetMetricByName(metricModel.ID)
+	metric, err := h.metricService.GetMetricByName(metricModel.ID, r.Context())
 	if err != nil {
 		h.logger.Info("metric not found", zap.Error(err))
 		http.Error(w, "метрика не найдена", http.StatusNotFound)
@@ -128,7 +129,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := h.metricService.GetAllMetrics()
+	metrics := h.metricService.GetAllMetrics(r.Context())
 
 	tmpl, err := template.ParseFiles(filepath.Join(BasePath(), "/internal/server/handlers/list_metrics.tmpl"))
 	if err != nil {

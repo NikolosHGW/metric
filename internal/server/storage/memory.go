@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -16,7 +17,7 @@ type MemStorage struct {
 	metrics map[string]metricValue
 }
 
-func (ms MemStorage) GetGaugeMetric(name string) (models.Gauge, error) {
+func (ms MemStorage) GetGaugeMetric(name string, _ctx context.Context) (models.Gauge, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		return metric.gauge, nil
@@ -25,7 +26,7 @@ func (ms MemStorage) GetGaugeMetric(name string) (models.Gauge, error) {
 	return 0, fmt.Errorf("gauge metric %s not found", name)
 }
 
-func (ms MemStorage) GetCounterMetric(name string) (models.Counter, error) {
+func (ms MemStorage) GetCounterMetric(name string, _ctx context.Context) (models.Counter, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		return metric.counter, nil
@@ -34,7 +35,7 @@ func (ms MemStorage) GetCounterMetric(name string) (models.Counter, error) {
 	return 0, fmt.Errorf("counter metric %s not found", name)
 }
 
-func (ms *MemStorage) SetGaugeMetric(name string, value models.Gauge) {
+func (ms *MemStorage) SetGaugeMetric(name string, value models.Gauge, _ctx context.Context) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.gauge = value
@@ -49,7 +50,7 @@ func (ms *MemStorage) SetGaugeMetric(name string, value models.Gauge) {
 	}
 }
 
-func (ms *MemStorage) SetCounterMetric(name string, value models.Counter) {
+func (ms *MemStorage) SetCounterMetric(name string, value models.Counter, _ctx context.Context) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.counter += value
@@ -64,17 +65,17 @@ func (ms *MemStorage) SetCounterMetric(name string, value models.Counter) {
 	}
 }
 
-func (ms *MemStorage) SetMetric(m models.Metrics) {
+func (ms *MemStorage) SetMetric(m models.Metrics, _ctx context.Context) {
 	if m.MType == models.CounterType {
-		ms.SetCounterMetric(m.ID, models.Counter(*m.Delta))
+		ms.SetCounterMetric(m.ID, models.Counter(*m.Delta), _ctx)
 
 		return
 	}
 
-	ms.SetGaugeMetric(m.ID, models.Gauge(*m.Value))
+	ms.SetGaugeMetric(m.ID, models.Gauge(*m.Value), _ctx)
 }
 
-func getMetricsModel(name string, metric metricValue) models.Metrics {
+func getMetricsModel(name string, metric metricValue, _ctx context.Context) models.Metrics {
 	if metric.counter != 0 {
 		return models.Metrics{ID: name, MType: models.CounterType, Delta: (*int64)(&metric.counter)}
 	}
@@ -82,26 +83,26 @@ func getMetricsModel(name string, metric metricValue) models.Metrics {
 	return models.Metrics{ID: name, MType: models.GaugeType, Value: (*float64)(&metric.gauge)}
 }
 
-func (ms *MemStorage) GetMetric(name string) (models.Metrics, error) {
+func (ms *MemStorage) GetMetric(name string, _ctx context.Context) (models.Metrics, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
-		return getMetricsModel(name, metric), nil
+		return getMetricsModel(name, metric, _ctx), nil
 	}
 
 	return models.Metrics{}, fmt.Errorf("%s metric not found", name)
 }
 
-func (ms *MemStorage) GetMetricsModels() []models.Metrics {
+func (ms *MemStorage) GetMetricsModels(_ctx context.Context) []models.Metrics {
 	models := make([]models.Metrics, 0, len(ms.metrics))
 	for k := range ms.metrics {
-		model, _ := ms.GetMetric(k)
+		model, _ := ms.GetMetric(k, _ctx)
 		models = append(models, model)
 	}
 
 	return models
 }
 
-func (ms MemStorage) GetAllMetrics() []string {
+func (ms MemStorage) GetAllMetrics(_ctx context.Context) []string {
 	result := make([]string, len(ms.metrics))
 
 	keys := make([]string, 0, len(ms.metrics))

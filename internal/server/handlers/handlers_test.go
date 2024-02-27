@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -88,8 +89,8 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 func TestHandler_GetMetric(t *testing.T) {
 	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
-	metricService.SetJSONMetric(models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
-	metricService.SetJSONMetric(models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
+	metricService.SetJSONMetric(models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)}, context.Background())
+	metricService.SetJSONMetric(models.Metrics{ID: "memory", MType: "counter", Delta: i(10)}, context.Background())
 	h := NewHandler(metricService, &mockLogger{})
 
 	tests := []struct {
@@ -158,7 +159,7 @@ func TestHandler_GetMetric(t *testing.T) {
 
 type storageMock struct{}
 
-func (sm storageMock) GetGaugeMetric(name string) (models.Gauge, error) {
+func (sm storageMock) GetGaugeMetric(name string, _ctx context.Context) (models.Gauge, error) {
 	if name == "Alloc" {
 		return 50.1, nil
 	}
@@ -166,7 +167,7 @@ func (sm storageMock) GetGaugeMetric(name string) (models.Gauge, error) {
 	return 0, errors.New("gauge metric not found")
 }
 
-func (sm storageMock) GetCounterMetric(name string) (models.Counter, error) {
+func (sm storageMock) GetCounterMetric(name string, _ctx context.Context) (models.Counter, error) {
 	if name == "PollCounter" {
 		return 50, nil
 	}
@@ -174,21 +175,21 @@ func (sm storageMock) GetCounterMetric(name string) (models.Counter, error) {
 	return 0, errors.New("counter metric not found")
 }
 
-func (sm storageMock) SetGaugeMetric(name string, value models.Gauge) {
+func (sm storageMock) SetGaugeMetric(name string, value models.Gauge, _ctx context.Context) {
 
 }
 
-func (sm storageMock) SetCounterMetric(name string, value models.Counter) {
+func (sm storageMock) SetCounterMetric(name string, value models.Counter, _ctx context.Context) {
 
 }
 
-func (sm storageMock) GetAllMetrics() []string {
+func (sm storageMock) GetAllMetrics(_ctx context.Context) []string {
 	return []string{}
 }
 
-func (sm storageMock) SetMetric(m models.Metrics) {}
+func (sm storageMock) SetMetric(m models.Metrics, _ctx context.Context) {}
 
-func (sm storageMock) GetMetric(name string) (models.Metrics, error) {
+func (sm storageMock) GetMetric(name string, _ctx context.Context) (models.Metrics, error) {
 	return models.Metrics{}, nil
 }
 

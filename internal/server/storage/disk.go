@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 
@@ -9,8 +10,8 @@ import (
 )
 
 type Storage interface {
-	GetMetricsModels() []models.Metrics
-	SetMetric(models.Metrics)
+	GetMetricsModels(context.Context) []models.Metrics
+	SetMetric(models.Metrics, context.Context)
 }
 
 type Producer struct {
@@ -93,7 +94,7 @@ func (ds DiskStorage) WriteToDisk() {
 	}
 	defer Producer.Close()
 
-	for _, metric := range ds.strg.GetMetricsModels() {
+	for _, metric := range ds.strg.GetMetricsModels(context.Background()) {
 		if err := Producer.WriteMetric(&metric); err != nil {
 			ds.log.Info("cannot encode", zap.Error(err))
 		}
@@ -113,7 +114,7 @@ func (ds DiskStorage) WriteToStorage() {
 			ds.log.Info("cannot decode", zap.Error(err))
 			break
 		}
-		ds.strg.SetMetric(*metric)
+		ds.strg.SetMetric(*metric, context.Background())
 	}
 }
 
