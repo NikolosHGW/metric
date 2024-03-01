@@ -11,7 +11,7 @@ import (
 
 type Storage interface {
 	GetMetricsModels(context.Context) []models.Metrics
-	SetMetric(models.Metrics, context.Context)
+	SetMetric(models.Metrics, context.Context) error
 }
 
 type Producer struct {

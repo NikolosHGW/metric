@@ -35,7 +35,7 @@ func (ms MemStorage) GetCounterMetric(name string, _ context.Context) (models.Co
 	return 0, fmt.Errorf("counter metric %s not found", name)
 }
 
-func (ms *MemStorage) SetGaugeMetric(name string, value models.Gauge, _ context.Context) {
+func (ms *MemStorage) SetGaugeMetric(name string, value models.Gauge, _ context.Context) error {
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.gauge = value
@@ -48,9 +48,11 @@ func (ms *MemStorage) SetGaugeMetric(name string, value models.Gauge, _ context.
 			gauge: value,
 		}
 	}
+
+	return nil
 }
 
-func (ms *MemStorage) SetCounterMetric(name string, value models.Counter, _ context.Context) {
+func (ms *MemStorage) SetCounterMetric(name string, value models.Counter, _ context.Context) error {
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.counter += value
@@ -63,16 +65,20 @@ func (ms *MemStorage) SetCounterMetric(name string, value models.Counter, _ cont
 			counter: value,
 		}
 	}
+
+	return nil
 }
 
-func (ms *MemStorage) SetMetric(m models.Metrics, ctx context.Context) {
+func (ms *MemStorage) SetMetric(m models.Metrics, ctx context.Context) error {
 	if m.MType == models.CounterType {
 		ms.SetCounterMetric(m.ID, models.Counter(*m.Delta), ctx)
 
-		return
+		return nil
 	}
 
 	ms.SetGaugeMetric(m.ID, models.Gauge(*m.Value), ctx)
+
+	return nil
 }
 
 func getMetricsModel(name string, metric metricValue, _ context.Context) models.Metrics {

@@ -20,7 +20,7 @@ func InitDB(dataSourceName string) error {
 		return fmt.Errorf("connect to postgres: %w", err)
 	}
 
-	err = runMigrations(dataSourceName, db)
+	err = runMigrations(db)
 
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func InitDB(dataSourceName string) error {
 //go:embed migrations/*.sql
 var migrationsDir embed.FS
 
-func runMigrations(dsn string, db *sqlx.DB) error {
+func runMigrations(db *sqlx.DB) error {
 	d, err := iofs.New(migrationsDir, "migrations")
 	if err != nil {
 		return fmt.Errorf("failed to return an iofs driver: %w", err)

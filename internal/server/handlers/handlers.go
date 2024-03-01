@@ -16,8 +16,8 @@ import (
 )
 
 type metricService interface {
-	SetMetric(string, string, string, context.Context)
-	SetJSONMetric(models.Metrics, context.Context)
+	SetMetric(string, string, string, context.Context) error
+	SetJSONMetric(models.Metrics, context.Context) error
 	GetMetricValue(string, string, context.Context) (string, error)
 	GetMetricByName(string, context.Context) (models.Metrics, error)
 	GetAllMetrics(context.Context) []string
@@ -43,7 +43,12 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	h.metricService.SetMetric(metricType, metricName, metricValue, r.Context())
+	err := h.metricService.SetMetric(metricType, metricName, metricValue, r.Context())
+	if err != nil {
+		h.logger.Info("cannot upsert metric", zap.Error(err))
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Add("Content-Type", "charset=utf-8")
@@ -76,7 +81,12 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	h.metricService.SetJSONMetric(*metricModel, r.Context())
+	err = h.metricService.SetJSONMetric(*metricModel, r.Context())
+	if err != nil {
+		h.logger.Info("cannot upsert metric", zap.Error(err))
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
+		return
+	}
 
 	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID, r.Context())
 	if err != nil {

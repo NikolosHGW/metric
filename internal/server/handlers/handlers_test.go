@@ -175,19 +175,19 @@ func (sm storageMock) GetCounterMetric(name string, _ctx context.Context) (model
 	return 0, errors.New("counter metric not found")
 }
 
-func (sm storageMock) SetGaugeMetric(name string, value models.Gauge, _ctx context.Context) {
-
+func (sm storageMock) SetGaugeMetric(name string, value models.Gauge, _ctx context.Context) error {
+	return nil
 }
 
-func (sm storageMock) SetCounterMetric(name string, value models.Counter, _ctx context.Context) {
-
+func (sm storageMock) SetCounterMetric(name string, value models.Counter, _ctx context.Context) error {
+	return nil
 }
 
 func (sm storageMock) GetAllMetrics(_ctx context.Context) []string {
 	return []string{}
 }
 
-func (sm storageMock) SetMetric(m models.Metrics, _ctx context.Context) {}
+func (sm storageMock) SetMetric(m models.Metrics, _ctx context.Context) error { return nil }
 
 func (sm storageMock) GetMetric(name string, _ctx context.Context) (models.Metrics, error) {
 	return models.Metrics{}, nil

@@ -2,22 +2,13 @@ package storage
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
 	"github.com/NikolosHGW/metric/internal/models"
 )
-
-// type repository interface {
-// 	SetMetric(models.Metrics, context.Context)
-// 	GetMetric(string, context.Context) (models.Metrics, error)
-// 	SetGaugeMetric(string, models.Gauge, context.Context)
-// 	SetCounterMetric(string, models.Counter, context.Context)
-// 	GetGaugeMetric(string, context.Context) (models.Gauge, error)
-// 	GetCounterMetric(string, context.Context) (models.Counter, error)
-// 	GetAllMetrics(context.Context) []string
-// }
 
 func NewDBStorage(sql *sqlx.DB, log customLogger) *DBStorage {
 	return &DBStorage{
@@ -31,7 +22,7 @@ type DBStorage struct {
 	log customLogger
 }
 
-func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) {
+func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) error {
 	_, err := ds.sql.ExecContext(
 		ctx,
 		`INSERT INTO metrics (id, type, delta, value)
@@ -44,9 +35,8 @@ func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) {
 		m.Delta,
 		m.Value,
 	)
-	if err != nil {
-		ds.log.Info("cannot exec set metric", zap.Error(err))
-	}
+
+	return err
 }
 
 func (ds DBStorage) GetMetric(name string, ctx context.Context) (models.Metrics, error) {
@@ -63,6 +53,70 @@ func (ds DBStorage) GetMetric(name string, ctx context.Context) (models.Metrics,
 	return model, err
 }
 
-func (ds DBStorage) SetGaugeMetric(name string, value models.Gauge, ctx context.Context) {
+func (ds DBStorage) SetGaugeMetric(name string, value models.Gauge, ctx context.Context) error {
+	metric := models.Metrics{
+		ID:    name,
+		MType: models.GaugeType,
+		Value: (*float64)(&value),
+	}
 
+	return ds.SetMetric(metric, ctx)
+}
+
+func (ds DBStorage) SetCounterMetric(name string, value models.Counter, ctx context.Context) error {
+	metric := models.Metrics{
+		ID:    name,
+		MType: models.CounterType,
+		Delta: (*int64)(&value),
+	}
+
+	return ds.SetMetric(metric, ctx)
+}
+
+func (ds DBStorage) GetGaugeMetric(name string, ctx context.Context) (models.Metrics, error) {
+	return ds.GetMetric(name, ctx)
+}
+
+func (ds DBStorage) GetCounterMetric(name string, ctx context.Context) (models.Metrics, error) {
+	return ds.GetMetric(name, ctx)
+}
+
+func (ds DBStorage) GetAllMetrics(ctx context.Context) []string {
+	rows, err := ds.sql.QueryxContext(ctx, "SELECT id, type, delta, value FROM metrics ORDER BY id")
+
+	var metricStrings []string
+	if err != nil {
+		ds.log.Info("cannot get all metric", zap.Error(err))
+		return metricStrings
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		var mType string
+		var delta int64
+		var value float64
+		err = rows.Scan(&name, &mType, &delta, &value)
+
+		if err != nil {
+			ds.log.Info("cannot Scan", zap.Error(err))
+			return metricStrings
+		}
+
+		result := fmt.Sprintf("%v", delta)
+		if mType == models.GaugeType {
+			result = fmt.Sprintf("%v", value)
+		}
+
+		metricStrings = append(metricStrings, fmt.Sprintf("%v: %v", name, result))
+	}
+
+	err = rows.Err()
+	if err != nil {
+		ds.log.Info("rows Err", zap.Error(err))
+		return metricStrings
+	}
+
+	return metricStrings
 }

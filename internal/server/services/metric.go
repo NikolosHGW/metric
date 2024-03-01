@@ -9,10 +9,10 @@ import (
 )
 
 type repository interface {
-	SetMetric(models.Metrics, context.Context)
+	SetMetric(models.Metrics, context.Context) error
 	GetMetric(string, context.Context) (models.Metrics, error)
-	SetGaugeMetric(string, models.Gauge, context.Context)
-	SetCounterMetric(string, models.Counter, context.Context)
+	SetGaugeMetric(string, models.Gauge, context.Context) error
+	SetCounterMetric(string, models.Counter, context.Context) error
 	GetGaugeMetric(string, context.Context) (models.Gauge, error)
 	GetCounterMetric(string, context.Context) (models.Counter, error)
 	GetAllMetrics(context.Context) []string
@@ -28,16 +28,19 @@ func NewMetricService(repo repository) *MetricService {
 	}
 }
 
-func (ms MetricService) SetMetric(metricType, metricName, metricValue string, ctx context.Context) {
+func (ms MetricService) SetMetric(metricType, metricName, metricValue string, ctx context.Context) error {
+	var err error
 	if metricType == models.CounterType {
 		value, _ := strconv.ParseInt(metricValue, 10, 64)
-		ms.strg.SetCounterMetric(metricName, models.Counter(value), ctx)
+		err = ms.strg.SetCounterMetric(metricName, models.Counter(value), ctx)
 	}
 
 	if metricType == models.GaugeType {
 		value, _ := strconv.ParseFloat(metricValue, 64)
-		ms.strg.SetGaugeMetric(metricName, models.Gauge(value), ctx)
+		err = ms.strg.SetGaugeMetric(metricName, models.Gauge(value), ctx)
 	}
+
+	return err
 }
 
 func (ms MetricService) GetMetricValue(metricType, metricName string, ctx context.Context) (string, error) {
@@ -52,8 +55,8 @@ func (ms MetricService) GetMetricValue(metricType, metricName string, ctx contex
 	return fmt.Sprintf("%v", metricValue), err
 }
 
-func (ms *MetricService) SetJSONMetric(m models.Metrics, ctx context.Context) {
-	ms.strg.SetMetric(m, ctx)
+func (ms *MetricService) SetJSONMetric(m models.Metrics, ctx context.Context) error {
+	return ms.strg.SetMetric(m, ctx)
 }
 
 func (ms MetricService) GetMetricByName(name string, ctx context.Context) (models.Metrics, error) {
