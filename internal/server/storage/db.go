@@ -73,12 +73,26 @@ func (ds DBStorage) SetCounterMetric(name string, value models.Counter, ctx cont
 	return ds.SetMetric(metric, ctx)
 }
 
-func (ds DBStorage) GetGaugeMetric(name string, ctx context.Context) (models.Metrics, error) {
-	return ds.GetMetric(name, ctx)
+func (ds DBStorage) GetGaugeMetric(name string, ctx context.Context) (models.Gauge, error) {
+	metric, err := ds.GetMetric(name, ctx)
+
+	if err != nil {
+		var value models.Gauge
+		return value, err
+	}
+
+	return models.Gauge(*metric.Value), err
 }
 
-func (ds DBStorage) GetCounterMetric(name string, ctx context.Context) (models.Metrics, error) {
-	return ds.GetMetric(name, ctx)
+func (ds DBStorage) GetCounterMetric(name string, ctx context.Context) (models.Counter, error) {
+	metric, err := ds.GetMetric(name, ctx)
+
+	if err != nil {
+		var value models.Counter
+		return value, err
+	}
+
+	return models.Counter(*metric.Delta), err
 }
 
 func (ds DBStorage) GetAllMetrics(ctx context.Context) []string {
@@ -119,4 +133,8 @@ func (ds DBStorage) GetAllMetrics(ctx context.Context) []string {
 	}
 
 	return metricStrings
+}
+
+func (ds DBStorage) GetIsDBConnected() bool {
+	return true
 }

@@ -27,16 +27,20 @@ func run() error {
 		return err
 	}
 
-	err := db.InitDB(config.GetDBConnection())
+	database, err := db.InitDB(config.GetDBConnection())
 	if err != nil {
 		logger.Log.Info("init db", zap.Error(err))
 	}
-	if db.DB != nil {
-		defer db.DB.Close()
+	if database != nil {
+		defer database.Close()
 	}
 
 	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
+	if database != nil {
+		databaseStrg := storage.NewDBStorage(database, logger.Log)
+		metricService = services.NewMetricService(databaseStrg)
+	}
 	handler := handlers.NewHandler(metricService, logger.Log)
 	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())

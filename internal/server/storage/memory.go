@@ -140,3 +140,7 @@ func NewMemStorage() *MemStorage {
 
 	return storage
 }
+
+func (ms *MemStorage) GetIsDBConnected() bool {
+	return false
+}

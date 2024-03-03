@@ -16,6 +16,7 @@ type repository interface {
 	GetGaugeMetric(string, context.Context) (models.Gauge, error)
 	GetCounterMetric(string, context.Context) (models.Counter, error)
 	GetAllMetrics(context.Context) []string
+	GetIsDBConnected() bool
 }
 
 type MetricService struct {
@@ -65,4 +66,8 @@ func (ms MetricService) GetMetricByName(name string, ctx context.Context) (model
 
 func (ms MetricService) GetAllMetrics(ctx context.Context) []string {
 	return ms.strg.GetAllMetrics(ctx)
+}
+
+func (ms MetricService) GetIsDBConnected() bool {
+	return ms.strg.GetIsDBConnected()
 }

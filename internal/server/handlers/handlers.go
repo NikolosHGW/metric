@@ -9,7 +9,6 @@ import (
 	"runtime"
 
 	"github.com/NikolosHGW/metric/internal/models"
-	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/go-chi/chi"
 
 	"go.uber.org/zap"
@@ -21,6 +20,7 @@ type metricService interface {
 	GetMetricValue(string, string, context.Context) (string, error)
 	GetMetricByName(string, context.Context) (models.Metrics, error)
 	GetAllMetrics(context.Context) []string
+	GetIsDBConnected() bool
 }
 
 type customLogger interface {
@@ -163,9 +163,9 @@ func BasePath() string {
 }
 
 func (h Handler) PingDB(w http.ResponseWriter, r *http.Request) {
-	if db.DB != nil {
-		w.WriteHeader(http.StatusOK)
+	if h.metricService.GetIsDBConnected() {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusInternalServerError)
+	w.WriteHeader(http.StatusOK)
 }

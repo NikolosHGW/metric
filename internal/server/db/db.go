@@ -12,23 +12,19 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var DB *sqlx.DB
-
-func InitDB(dataSourceName string) error {
+func InitDB(dataSourceName string) (*sqlx.DB, error) {
 	db, err := sqlx.Connect("postgres", dataSourceName)
 	if err != nil {
-		return fmt.Errorf("connect to postgres: %w", err)
+		return nil, fmt.Errorf("connect to postgres: %w", err)
 	}
 
 	err = runMigrations(db)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	DB = db
-
-	return nil
+	return db, nil
 }
 
 //go:embed migrations/*.sql

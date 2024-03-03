@@ -193,6 +193,10 @@ func (sm storageMock) GetMetric(name string, _ctx context.Context) (models.Metri
 	return models.Metrics{}, nil
 }
 
+func (sm storageMock) GetIsDBConnected() bool {
+	return false
+}
+
 func TestWithSetMetricHandle(t *testing.T) {
 	type want struct {
 		code         int
