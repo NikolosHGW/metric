@@ -164,8 +164,8 @@ func BasePath() string {
 
 func (h Handler) PingDB(w http.ResponseWriter, r *http.Request) {
 	if h.metricService.GetIsDBConnected() {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusInternalServerError)
 }

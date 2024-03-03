@@ -136,5 +136,7 @@ func (ds DBStorage) GetAllMetrics(ctx context.Context) []string {
 }
 
 func (ds DBStorage) GetIsDBConnected() bool {
-	return true
+	err := ds.sql.DB.Ping()
+
+	return err == nil
 }
