@@ -40,7 +40,7 @@ func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) error {
 }
 
 func (ds DBStorage) GetMetric(name string, ctx context.Context) (models.Metrics, error) {
-	row := ds.sql.QueryRowxContext(ctx, "SELECT id, type, delta, value FROM metrics WHERE id = &1", name)
+	row := ds.sql.QueryRowxContext(ctx, "SELECT id, type, delta, value FROM metrics WHERE id = $1", name)
 
 	model := models.Metrics{}
 
