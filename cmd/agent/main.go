@@ -14,6 +14,7 @@ func main() {
 
 	go request.CollectMetrics(stats, config.GetPollInterval())
 	go request.SendJSONMetrics(stats, config.GetReportInterval(), config.GetAddress())
+	go request.SendBatchJSONMetrics(stats, config.GetReportInterval(), config.GetAddress())
 
 	for {
 		time.Sleep(10 * time.Second)
