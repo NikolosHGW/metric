@@ -144,3 +144,11 @@ func NewMemStorage() *MemStorage {
 func (ms *MemStorage) GetIsDBConnected() bool {
 	return false
 }
+
+func (ms *MemStorage) UpsertMetrics(metricCollection models.MetricCollection, ctx context.Context) (models.MetricCollection, error) {
+	for _, m := range metricCollection.Metrics {
+		ms.SetMetric(m, ctx)
+	}
+
+	return metricCollection, nil
+}

@@ -140,3 +140,36 @@ func (ds DBStorage) GetIsDBConnected() bool {
 
 	return err == nil
 }
+
+func (ds *DBStorage) UpsertMetrics(metricCollection models.MetricCollection, ctx context.Context) (models.MetricCollection, error) {
+	var upsertedMetrics []models.Metrics
+
+	rows, err := ds.sql.NamedQueryContext(
+		ctx,
+		`INSERT INTO metrics (id, type, delta, value)
+        VALUES (:id, :type, :delta, :value)
+        ON CONFLICT (id) DO UPDATE SET type = EXCLUDED.type, 
+            delta = EXCLUDED.delta, 
+            value = EXCLUDED.value
+        RETURNING *`,
+		metricCollection.Metrics,
+	)
+	if err != nil {
+		return *models.NewMetricCollection(), err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var m models.Metrics
+		if err := rows.StructScan(&m); err != nil {
+			return *models.NewMetricCollection(), err
+		}
+		upsertedMetrics = append(upsertedMetrics, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return *models.NewMetricCollection(), err
+	}
+
+	return models.MetricCollection{Metrics: upsertedMetrics}, nil
+}

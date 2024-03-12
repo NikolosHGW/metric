@@ -197,6 +197,10 @@ func (sm storageMock) GetIsDBConnected() bool {
 	return false
 }
 
+func (sm storageMock) UpsertMetrics(mc models.MetricCollection, ctx context.Context) (models.MetricCollection, error) {
+	return *models.NewMetricCollection(), nil
+}
+
 func TestWithSetMetricHandle(t *testing.T) {
 	type want struct {
 		code         int

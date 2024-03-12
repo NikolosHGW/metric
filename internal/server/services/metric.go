@@ -17,6 +17,7 @@ type repository interface {
 	GetCounterMetric(string, context.Context) (models.Counter, error)
 	GetAllMetrics(context.Context) []string
 	GetIsDBConnected() bool
+	UpsertMetrics(models.MetricCollection, context.Context) (models.MetricCollection, error)
 }
 
 type MetricService struct {
@@ -70,4 +71,8 @@ func (ms MetricService) GetAllMetrics(ctx context.Context) []string {
 
 func (ms MetricService) GetIsDBConnected() bool {
 	return ms.strg.GetIsDBConnected()
+}
+
+func (ms MetricService) UpsertMetrics(mc models.MetricCollection, ctx context.Context) (models.MetricCollection, error) {
+	return ms.strg.UpsertMetrics(mc, ctx)
 }

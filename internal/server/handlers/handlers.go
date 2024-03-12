@@ -21,6 +21,7 @@ type metricService interface {
 	GetMetricByName(string, context.Context) (models.Metrics, error)
 	GetAllMetrics(context.Context) []string
 	GetIsDBConnected() bool
+	UpsertMetrics(models.MetricCollection, context.Context) (models.MetricCollection, error)
 }
 
 type customLogger interface {
@@ -72,7 +73,7 @@ func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
-	metricModel := models.NewMetricsModel()
+	metricModel := models.NewMetricModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
 		h.logger.Info("cannot decode request JSON body", zap.Error(err))
@@ -108,7 +109,7 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
-	metricModel := models.NewMetricsModel()
+	metricModel := models.NewMetricModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
 	if err != nil {
 		h.logger.Info("cannot decode request JSON body", zap.Error(err))
@@ -168,4 +169,34 @@ func (h Handler) PingDB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
+	metricCollection := models.NewMetricCollection()
+	err := metricCollection.DecodeMetricsRequest(r.Body)
+	if err != nil {
+		h.logger.Info("cannot decode request JSON body", zap.Error(err))
+		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
+
+		return
+	}
+	defer r.Body.Close()
+
+	metrics, err := h.metricService.UpsertMetrics(*metricCollection, r.Context())
+	if err != nil {
+		h.logger.Info("cannot upsert metrics", zap.Error(err))
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(metrics.Metrics)
+	if err != nil {
+		h.logger.Info("cannot encode to JSON", zap.Error(err))
+		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }

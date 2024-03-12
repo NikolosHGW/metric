@@ -47,13 +47,13 @@ const (
 )
 
 type Metrics struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	ID    string   `json:"id" db:"id"`                 // имя метрики
+	MType string   `json:"type" db:"type"`             // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty" db:"delta"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty" db:"value"` // значение метрики в случае передачи gauge
 }
 
-func NewMetricsModel() *Metrics {
+func NewMetricModel() *Metrics {
 	return new(Metrics)
 }
 
@@ -65,6 +65,31 @@ func (m *Metrics) DecodeMetricRequest(body io.ReadCloser) error {
 
 	if m.MType != GaugeType && m.MType != CounterType {
 		return fmt.Errorf("invalid metric type: %s", m.MType)
+	}
+
+	return nil
+}
+
+type MetricCollection struct {
+	Metrics []Metrics `json:"metrics"`
+}
+
+func NewMetricCollection() *MetricCollection {
+	return &MetricCollection{
+		Metrics: []Metrics{},
+	}
+}
+
+func (mc *MetricCollection) DecodeMetricsRequest(body io.ReadCloser) error {
+	dec := json.NewDecoder(body)
+	if err := dec.Decode(&mc); err != nil {
+		return err
+	}
+
+	for _, m := range mc.Metrics {
+		if m.MType != GaugeType && m.MType != CounterType {
+			return fmt.Errorf("invalid metric type: %s", m.MType)
+		}
 	}
 
 	return nil
