@@ -81,16 +81,20 @@ func NewMetricCollection() *MetricCollection {
 }
 
 func (mc *MetricCollection) DecodeMetricsRequest(body io.ReadCloser) error {
+	var tempMetrics []Metrics
+
 	dec := json.NewDecoder(body)
-	if err := dec.Decode(&mc); err != nil {
+	if err := dec.Decode(&tempMetrics); err != nil {
 		return err
 	}
 
-	for _, m := range mc.Metrics {
+	for _, m := range tempMetrics {
 		if m.MType != GaugeType && m.MType != CounterType {
 			return fmt.Errorf("invalid metric type: %s", m.MType)
 		}
 	}
+
+	mc.Metrics = tempMetrics
 
 	return nil
 }
