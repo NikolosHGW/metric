@@ -147,11 +147,12 @@ func (ds *DBStorage) UpsertMetrics(metricCollection models.MetricCollection, ctx
 	rows, err := ds.sql.NamedQueryContext(
 		ctx,
 		`INSERT INTO metrics (id, type, delta, value)
-        VALUES (:id, :type, :delta, :value)
-        ON CONFLICT (id) DO UPDATE SET type = EXCLUDED.type, 
-            delta = EXCLUDED.delta, 
-            value = EXCLUDED.value
-        RETURNING *`,
+		VALUES (:id, :type, :delta, :value)
+		ON CONFLICT (id) DO UPDATE SET
+			type = EXCLUDED.type,
+			delta = metrics.delta + EXCLUDED.delta,
+			value = EXCLUDED.value
+		RETURNING *`,
 		metricCollection.Metrics,
 	)
 	if err != nil {
