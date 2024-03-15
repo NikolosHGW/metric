@@ -160,7 +160,7 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
 				continue
 			}
-			log.Println("metric/internal/client/util/util.go SendMetrics post status", resp.Status)
+			log.Println("metric/internal/client/util/util.go SendMetrics: ", data, "; ", "post status", resp.Status)
 			resp.Body.Close()
 		}
 
@@ -218,7 +218,7 @@ func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Post", err)
 			continue
 		}
-		log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics: ", data, "; ", "post status", resp.Status)
 		resp.Body.Close()
 
 		time.Sleep(time.Duration(reportInterval) * time.Second)
