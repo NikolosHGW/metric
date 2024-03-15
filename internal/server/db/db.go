@@ -4,18 +4,40 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 func InitDB(dataSourceName string) (*sqlx.DB, error) {
-	db, err := sqlx.Connect("postgres", dataSourceName)
+	var db *sqlx.DB
+	var err error
+
+	retryIntervals := []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
+
+	for i := 0; i < len(retryIntervals)+1; i++ {
+		db, err = sqlx.Connect("postgres", dataSourceName)
+		if err == nil {
+			break
+		}
+
+		if i < len(retryIntervals) {
+			if isRetriableError(err) {
+				time.Sleep(retryIntervals[i])
+				continue
+			}
+			return nil, fmt.Errorf("connect to postgres: %w", err)
+		}
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("connect to postgres: %w", err)
+		return nil, fmt.Errorf("connect to postgres after retries: %w", err)
 	}
 
 	err = runMigrations(db)
@@ -53,4 +75,21 @@ func runMigrations(db *sqlx.DB) error {
 	}
 
 	return nil
+}
+
+func isRetriableError(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgerrcode.SerializationFailure,
+			pgerrcode.DeadlockDetected,
+			pgerrcode.LockNotAvailable,
+			pgerrcode.UniqueViolation,
+			pgerrcode.ConnectionException,
+			pgerrcode.ConnectionDoesNotExist,
+			pgerrcode.ConnectionFailure:
+			return true
+		}
+	}
+	return false
 }
