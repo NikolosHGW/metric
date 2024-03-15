@@ -136,7 +136,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("in: ", r.Body, "; ", "out: ", resp)
+	log.Println("in: ", metricModel, "; ", "out: ", metric)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
@@ -199,7 +199,7 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("in: ", r.Body, "; ", "out: ", resp)
+	log.Println("in: ", metricCollection, "; ", "out: ", metrics)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
