@@ -66,6 +66,11 @@ func (m *Metrics) DecodeMetricRequest(body io.ReadCloser) error {
 	if m.MType != GaugeType && m.MType != CounterType {
 		return fmt.Errorf("invalid metric type: %s", m.MType)
 	}
+	if m.MType == GaugeType {
+		m.Delta = nil
+	} else if m.MType == CounterType {
+		m.Value = nil
+	}
 
 	return nil
 }
@@ -88,9 +93,14 @@ func (mc *MetricCollection) DecodeMetricsRequest(body io.ReadCloser) error {
 		return err
 	}
 
-	for _, m := range tempMetrics {
+	for i, m := range tempMetrics {
 		if m.MType != GaugeType && m.MType != CounterType {
 			return fmt.Errorf("invalid metric type: %s", m.MType)
+		}
+		if m.MType == GaugeType {
+			tempMetrics[i].Delta = nil
+		} else if m.MType == CounterType {
+			tempMetrics[i].Value = nil
 		}
 	}
 
