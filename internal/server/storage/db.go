@@ -28,7 +28,7 @@ func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) error {
 		`INSERT INTO metrics (id, type, delta, value)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO UPDATE SET type = EXCLUDED.type, 
-			delta = EXCLUDED.delta, 
+			delta = metrics.delta + EXCLUDED.delta, 
 			value = EXCLUDED.value`,
 		m.ID,
 		m.MType,
