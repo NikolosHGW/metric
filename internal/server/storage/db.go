@@ -22,7 +22,7 @@ type DBStorage struct {
 	log customLogger
 }
 
-func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) error {
+func (ds DBStorage) SetMetric(ctx context.Context, m models.Metrics) error {
 	_, err := ds.sql.ExecContext(
 		ctx,
 		`INSERT INTO metrics (id, type, delta, value)
@@ -39,7 +39,7 @@ func (ds DBStorage) SetMetric(m models.Metrics, ctx context.Context) error {
 	return err
 }
 
-func (ds DBStorage) GetMetric(name string, ctx context.Context) (models.Metrics, error) {
+func (ds DBStorage) GetMetric(ctx context.Context, name string) (models.Metrics, error) {
 	row := ds.sql.QueryRowxContext(ctx, "SELECT id, type, delta, value FROM metrics WHERE id = $1", name)
 
 	model := models.Metrics{}
@@ -53,28 +53,28 @@ func (ds DBStorage) GetMetric(name string, ctx context.Context) (models.Metrics,
 	return model, err
 }
 
-func (ds DBStorage) SetGaugeMetric(name string, value models.Gauge, ctx context.Context) error {
+func (ds DBStorage) SetGaugeMetric(ctx context.Context, name string, value models.Gauge) error {
 	metric := models.Metrics{
 		ID:    name,
 		MType: models.GaugeType,
 		Value: (*float64)(&value),
 	}
 
-	return ds.SetMetric(metric, ctx)
+	return ds.SetMetric(ctx, metric)
 }
 
-func (ds DBStorage) SetCounterMetric(name string, value models.Counter, ctx context.Context) error {
+func (ds DBStorage) SetCounterMetric(ctx context.Context, name string, value models.Counter) error {
 	metric := models.Metrics{
 		ID:    name,
 		MType: models.CounterType,
 		Delta: (*int64)(&value),
 	}
 
-	return ds.SetMetric(metric, ctx)
+	return ds.SetMetric(ctx, metric)
 }
 
-func (ds DBStorage) GetGaugeMetric(name string, ctx context.Context) (models.Gauge, error) {
-	metric, err := ds.GetMetric(name, ctx)
+func (ds DBStorage) GetGaugeMetric(ctx context.Context, name string) (models.Gauge, error) {
+	metric, err := ds.GetMetric(ctx, name)
 
 	if err != nil {
 		var value models.Gauge
@@ -84,8 +84,8 @@ func (ds DBStorage) GetGaugeMetric(name string, ctx context.Context) (models.Gau
 	return models.Gauge(*metric.Value), err
 }
 
-func (ds DBStorage) GetCounterMetric(name string, ctx context.Context) (models.Counter, error) {
-	metric, err := ds.GetMetric(name, ctx)
+func (ds DBStorage) GetCounterMetric(ctx context.Context, name string) (models.Counter, error) {
+	metric, err := ds.GetMetric(ctx, name)
 
 	if err != nil {
 		var value models.Counter
@@ -141,7 +141,7 @@ func (ds DBStorage) GetIsDBConnected() bool {
 	return err == nil
 }
 
-func (ds *DBStorage) UpsertMetrics(metricCollection models.MetricCollection, ctx context.Context) (models.MetricCollection, error) {
+func (ds *DBStorage) UpsertMetrics(ctx context.Context, metricCollection models.MetricCollection) (models.MetricCollection, error) {
 	var upsertedMetrics []models.Metrics
 
 	tx, err := ds.sql.BeginTxx(ctx, nil)

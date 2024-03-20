@@ -11,7 +11,7 @@ import (
 
 type Storage interface {
 	GetMetricsModels(context.Context) []models.Metrics
-	SetMetric(models.Metrics, context.Context) error
+	SetMetric(context.Context, models.Metrics) error
 }
 
 type Producer struct {
@@ -114,7 +114,7 @@ func (ds DiskStorage) WriteToStorage() {
 			ds.log.Info("cannot decode", zap.Error(err))
 			break
 		}
-		ds.strg.SetMetric(*metric, context.Background())
+		ds.strg.SetMetric(context.Background(), *metric)
 	}
 }
 

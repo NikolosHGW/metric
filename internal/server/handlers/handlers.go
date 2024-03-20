@@ -15,13 +15,13 @@ import (
 )
 
 type metricService interface {
-	SetMetric(string, string, string, context.Context) error
-	SetJSONMetric(models.Metrics, context.Context) error
-	GetMetricValue(string, string, context.Context) (string, error)
-	GetMetricByName(string, context.Context) (models.Metrics, error)
+	SetMetric(context.Context, string, string, string) error
+	SetJSONMetric(context.Context, models.Metrics) error
+	GetMetricValue(context.Context, string, string) (string, error)
+	GetMetricByName(context.Context, string) (models.Metrics, error)
 	GetAllMetrics(context.Context) []string
 	GetIsDBConnected() bool
-	UpsertMetrics(models.MetricCollection, context.Context) (models.MetricCollection, error)
+	UpsertMetrics(context.Context, models.MetricCollection) (models.MetricCollection, error)
 }
 
 type customLogger interface {
@@ -44,7 +44,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	err := h.metricService.SetMetric(metricType, metricName, metricValue, r.Context())
+	err := h.metricService.SetMetric(r.Context(), metricType, metricName, metricValue)
 	if err != nil {
 		h.logger.Info("cannot upsert metric", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
@@ -59,7 +59,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
-	metricValue, err := h.metricService.GetMetricValue(metricType, metricName, r.Context())
+	metricValue, err := h.metricService.GetMetricValue(r.Context(), metricType, metricName)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 
@@ -82,14 +82,14 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	err = h.metricService.SetJSONMetric(*metricModel, r.Context())
+	err = h.metricService.SetJSONMetric(r.Context(), *metricModel)
 	if err != nil {
 		h.logger.Info("cannot upsert metric", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
-	updatedMetric, err := h.metricService.GetMetricByName(metricModel.ID, r.Context())
+	updatedMetric, err := h.metricService.GetMetricByName(r.Context(), metricModel.ID)
 	if err != nil {
 		h.logger.Info("ошибка в GetMetricByName", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
@@ -119,7 +119,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	metric, err := h.metricService.GetMetricByName(metricModel.ID, r.Context())
+	metric, err := h.metricService.GetMetricByName(r.Context(), metricModel.ID)
 	if err != nil {
 		h.logger.Info("metric not found", zap.Error(err))
 		http.Error(w, "метрика не найдена", http.StatusNotFound)
@@ -182,7 +182,7 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	metrics, err := h.metricService.UpsertMetrics(*metricCollection, r.Context())
+	metrics, err := h.metricService.UpsertMetrics(r.Context(), *metricCollection)
 	if err != nil {
 		h.logger.Info("cannot upsert metrics", zap.Error(err))
 		http.Error(w, "ошибка сервера", http.StatusInternalServerError)
