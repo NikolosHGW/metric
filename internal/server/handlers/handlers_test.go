@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,7 +13,7 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/models"
 	"github.com/NikolosHGW/metric/internal/server/services"
-	"github.com/NikolosHGW/metric/internal/server/storage/memory"
+	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
 
@@ -29,10 +30,10 @@ func i(v int64) *int64 {
 
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
+func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
 
 func TestHandler_SetJSONMetric(t *testing.T) {
-	strg := memory.NewMemStorage()
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 
 	handler := NewHandler(metricService, &mockLogger{})
@@ -86,10 +87,10 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 }
 
 func TestHandler_GetMetric(t *testing.T) {
-	strg := memory.NewMemStorage()
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
-	metricService.SetJSONMetric(models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
-	metricService.SetJSONMetric(models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
+	metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
+	metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
 	h := NewHandler(metricService, &mockLogger{})
 
 	tests := []struct {
@@ -158,7 +159,7 @@ func TestHandler_GetMetric(t *testing.T) {
 
 type storageMock struct{}
 
-func (sm storageMock) GetGaugeMetric(name string) (models.Gauge, error) {
+func (sm storageMock) GetGaugeMetric(_ context.Context, name string) (models.Gauge, error) {
 	if name == "Alloc" {
 		return 50.1, nil
 	}
@@ -166,7 +167,7 @@ func (sm storageMock) GetGaugeMetric(name string) (models.Gauge, error) {
 	return 0, errors.New("gauge metric not found")
 }
 
-func (sm storageMock) GetCounterMetric(name string) (models.Counter, error) {
+func (sm storageMock) GetCounterMetric(_ context.Context, name string) (models.Counter, error) {
 	if name == "PollCounter" {
 		return 50, nil
 	}
@@ -174,22 +175,30 @@ func (sm storageMock) GetCounterMetric(name string) (models.Counter, error) {
 	return 0, errors.New("counter metric not found")
 }
 
-func (sm storageMock) SetGaugeMetric(name string, value models.Gauge) {
-
+func (sm storageMock) SetGaugeMetric(_ context.Context, name string, value models.Gauge) error {
+	return nil
 }
 
-func (sm storageMock) SetCounterMetric(name string, value models.Counter) {
-
+func (sm storageMock) SetCounterMetric(_ctx context.Context, name string, value models.Counter) error {
+	return nil
 }
 
-func (sm storageMock) GetAllMetrics() []string {
+func (sm storageMock) GetAllMetrics(_ctx context.Context) []string {
 	return []string{}
 }
 
-func (sm storageMock) SetMetric(m models.Metrics) {}
+func (sm storageMock) SetMetric(_ctx context.Context, m models.Metrics) error { return nil }
 
-func (sm storageMock) GetMetric(name string) (models.Metrics, error) {
+func (sm storageMock) GetMetric(_ctx context.Context, name string) (models.Metrics, error) {
 	return models.Metrics{}, nil
+}
+
+func (sm storageMock) GetIsDBConnected() bool {
+	return false
+}
+
+func (sm storageMock) UpsertMetrics(ctx context.Context, mc models.MetricCollection) (models.MetricCollection, error) {
+	return *models.NewMetricCollection(), nil
 }
 
 func TestWithSetMetricHandle(t *testing.T) {

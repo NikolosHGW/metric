@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/logger"
 	"github.com/NikolosHGW/metric/internal/server/routes"
 	"github.com/NikolosHGW/metric/internal/server/services"
-	"github.com/NikolosHGW/metric/internal/server/storage/disk"
-	"github.com/NikolosHGW/metric/internal/server/storage/memory"
+	"github.com/NikolosHGW/metric/internal/server/storage"
 	"go.uber.org/zap"
 )
 
@@ -27,10 +27,22 @@ func run() error {
 		return err
 	}
 
-	strg := memory.NewMemStorage()
+	database, err := db.InitDB(config.GetDBConnection())
+	if err != nil {
+		logger.Log.Info("init db", zap.Error(err))
+	}
+	if database != nil {
+		defer database.Close()
+	}
+
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
+	if database != nil {
+		databaseStrg := storage.NewDBStorage(database, logger.Log)
+		metricService = services.NewMetricService(databaseStrg)
+	}
 	handler := handlers.NewHandler(metricService, logger.Log)
-	diskStrg := disk.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
+	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
 	go diskService.CollectMetrics()

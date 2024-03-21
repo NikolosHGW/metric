@@ -1,64 +1,78 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"github.com/NikolosHGW/metric/internal/models"
 )
 
-type repository interface {
-	SetMetric(models.Metrics)
-	GetMetric(string) (models.Metrics, error)
-	SetGaugeMetric(string, models.Gauge)
-	SetCounterMetric(string, models.Counter)
-	GetGaugeMetric(string) (models.Gauge, error)
-	GetCounterMetric(string) (models.Counter, error)
-	GetAllMetrics() []string
+type Repository interface {
+	SetMetric(context.Context, models.Metrics) error
+	GetMetric(context.Context, string) (models.Metrics, error)
+	SetGaugeMetric(context.Context, string, models.Gauge) error
+	SetCounterMetric(context.Context, string, models.Counter) error
+	GetGaugeMetric(context.Context, string) (models.Gauge, error)
+	GetCounterMetric(context.Context, string) (models.Counter, error)
+	GetAllMetrics(context.Context) []string
+	GetIsDBConnected() bool
+	UpsertMetrics(context.Context, models.MetricCollection) (models.MetricCollection, error)
 }
 
 type MetricService struct {
-	strg repository
+	strg Repository
 }
 
-func NewMetricService(repo repository) *MetricService {
+func NewMetricService(repo Repository) *MetricService {
 	return &MetricService{
 		strg: repo,
 	}
 }
 
-func (ms MetricService) SetMetric(metricType, metricName, metricValue string) {
+func (ms MetricService) SetMetric(ctx context.Context, metricType, metricName, metricValue string) error {
+	var err error
 	if metricType == models.CounterType {
 		value, _ := strconv.ParseInt(metricValue, 10, 64)
-		ms.strg.SetCounterMetric(metricName, models.Counter(value))
+		err = ms.strg.SetCounterMetric(ctx, metricName, models.Counter(value))
 	}
 
 	if metricType == models.GaugeType {
 		value, _ := strconv.ParseFloat(metricValue, 64)
-		ms.strg.SetGaugeMetric(metricName, models.Gauge(value))
+		err = ms.strg.SetGaugeMetric(ctx, metricName, models.Gauge(value))
 	}
+
+	return err
 }
 
-func (ms MetricService) GetMetricValue(metricType, metricName string) (string, error) {
+func (ms MetricService) GetMetricValue(ctx context.Context, metricType, metricName string) (string, error) {
 	if metricType == models.GaugeType {
-		metricValue, err := ms.strg.GetGaugeMetric(metricName)
+		metricValue, err := ms.strg.GetGaugeMetric(ctx, metricName)
 
 		return fmt.Sprintf("%v", metricValue), err
 	}
 
-	metricValue, err := ms.strg.GetCounterMetric(metricName)
+	metricValue, err := ms.strg.GetCounterMetric(ctx, metricName)
 
 	return fmt.Sprintf("%v", metricValue), err
 }
 
-func (ms *MetricService) SetJSONMetric(m models.Metrics) {
-	ms.strg.SetMetric(m)
+func (ms *MetricService) SetJSONMetric(ctx context.Context, m models.Metrics) error {
+	return ms.strg.SetMetric(ctx, m)
 }
 
-func (ms MetricService) GetMetricByName(name string) (models.Metrics, error) {
-	return ms.strg.GetMetric(name)
+func (ms MetricService) GetMetricByName(ctx context.Context, name string) (models.Metrics, error) {
+	return ms.strg.GetMetric(ctx, name)
 }
 
-func (ms MetricService) GetAllMetrics() []string {
-	return ms.strg.GetAllMetrics()
+func (ms MetricService) GetAllMetrics(ctx context.Context) []string {
+	return ms.strg.GetAllMetrics(ctx)
+}
+
+func (ms MetricService) GetIsDBConnected() bool {
+	return ms.strg.GetIsDBConnected()
+}
+
+func (ms MetricService) UpsertMetrics(ctx context.Context, mc models.MetricCollection) (models.MetricCollection, error) {
+	return ms.strg.UpsertMetrics(ctx, mc)
 }

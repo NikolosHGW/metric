@@ -12,6 +12,7 @@ type config struct {
 	StoreInterval   int    `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DBConnect       string `env:"DATABASE_DSN"`
 }
 
 func (c *config) InitEnv() {
@@ -24,6 +25,7 @@ func (c *config) parseFlags() {
 	flag.IntVar(&c.StoreInterval, "i", 300, "store metrics to file seconds interval")
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "path where store metrics")
 	flag.BoolVar(&c.Restore, "r", true, "need load from file")
+	flag.StringVar(&c.DBConnect, "d", "user=nikolos password=abc123 dbname=metric sslmode=disable", "data source name for connection")
 	flag.Parse()
 }
 
@@ -46,4 +48,8 @@ func (c config) GetFileStoragePath() string {
 
 func (c config) GetRestore() bool {
 	return c.Restore
+}
+
+func (c config) GetDBConnection() string {
+	return c.DBConnect
 }

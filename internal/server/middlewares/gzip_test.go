@@ -10,17 +10,17 @@ import (
 
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/services"
-	"github.com/NikolosHGW/metric/internal/server/storage/memory"
+	"github.com/NikolosHGW/metric/internal/server/storage"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(msg string, fields ...zap.Field) {}
+func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
 
 func TestWithGzip(t *testing.T) {
-	strg := memory.NewMemStorage()
+	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 	handler := handlers.NewHandler(metricService, &mockLogger{})
 
