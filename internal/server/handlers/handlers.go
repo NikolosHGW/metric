@@ -158,9 +158,6 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.key != "" {
-		w.Header().Set("HashSHA256", string(getHash(resp, h.key)))
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
