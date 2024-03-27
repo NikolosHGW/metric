@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
 	"html/template"
+	"io"
 	"net/http"
 	"path/filepath"
 	"runtime"
@@ -31,12 +34,14 @@ type customLogger interface {
 type Handler struct {
 	metricService metricService
 	logger        customLogger
+	key           string
 }
 
-func NewHandler(ms metricService, l customLogger) *Handler {
+func NewHandler(ms metricService, l customLogger, key string) *Handler {
 	return &Handler{
 		metricService: ms,
 		logger:        l,
+		key:           key,
 	}
 }
 
@@ -82,6 +87,20 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "error reading request body", http.StatusInternalServerError)
+		return
+	}
+	if h.key != "" {
+		isEqual := checkHash(bodyBytes, h.key, r.Header.Get("HashSHA256"))
+		if !isEqual {
+			h.logger.Info("hash not equal")
+			http.Error(w, "хэш не совпадает", http.StatusBadRequest)
+			return
+		}
+	}
+
 	err = h.metricService.SetJSONMetric(r.Context(), *metricModel)
 	if err != nil {
 		h.logger.Info("cannot upsert metric", zap.Error(err))
@@ -103,6 +122,9 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.key != "" {
+		w.Header().Set("HashSHA256", string(getHash(resp, h.key)))
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
@@ -134,6 +156,9 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.key != "" {
+		w.Header().Set("HashSHA256", string(getHash(resp, h.key)))
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
@@ -182,6 +207,21 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "error reading request body", http.StatusInternalServerError)
+		return
+	}
+
+	if h.key != "" {
+		isEqual := checkHash(bodyBytes, h.key, r.Header.Get("HashSHA256"))
+		if !isEqual {
+			h.logger.Info("hash not equal")
+			http.Error(w, "хэш не совпадает", http.StatusBadRequest)
+			return
+		}
+	}
+
 	metrics, err := h.metricService.UpsertMetrics(r.Context(), *metricCollection)
 	if err != nil {
 		h.logger.Info("cannot upsert metrics", zap.Error(err))
@@ -196,7 +236,23 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.key != "" {
+		w.Header().Set("HashSHA256", string(getHash(resp, h.key)))
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+func checkHash(data []byte, key string, requestHash string) bool {
+	hashed := getHash(data, key)
+
+	return hmac.Equal(hashed, []byte(requestHash))
+}
+
+func getHash(data []byte, key string) []byte {
+	h := hmac.New(sha256.New, []byte(key))
+	h.Write(data)
+
+	return h.Sum(nil)
 }

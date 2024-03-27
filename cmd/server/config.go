@@ -13,6 +13,7 @@ type config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
 	DBConnect       string `env:"DATABASE_DSN"`
+	Key             string `env:"KEY"`
 }
 
 func (c *config) InitEnv() {
@@ -26,6 +27,7 @@ func (c *config) parseFlags() {
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "path where store metrics")
 	flag.BoolVar(&c.Restore, "r", true, "need load from file")
 	flag.StringVar(&c.DBConnect, "d", "user=nikolos password=abc123 dbname=metric sslmode=disable", "data source name for connection")
+	flag.StringVar(&c.Key, "k", "", "secret key for hash")
 	flag.Parse()
 }
 
@@ -52,4 +54,8 @@ func (c config) GetRestore() bool {
 
 func (c config) GetDBConnection() string {
 	return c.DBConnect
+}
+
+func (c config) GetKey() string {
+	return c.Key
 }
