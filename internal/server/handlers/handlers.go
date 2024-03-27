@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"html/template"
 	"io"
@@ -87,14 +88,15 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "error reading request body", http.StatusInternalServerError)
-		return
-	}
 	if h.key != "" {
-		isEqual := checkHash(bodyBytes, h.key, r.Header.Get("HashSHA256"))
-		if !isEqual {
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "error reading request body", http.StatusInternalServerError)
+			return
+		}
+
+		requestHash := r.Header.Get("HashSHA256")
+		if !checkHash(bodyBytes, h.key, requestHash) {
 			h.logger.Info("hash not equal")
 			http.Error(w, "хэш не совпадает", http.StatusBadRequest)
 			return
@@ -207,15 +209,15 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "error reading request body", http.StatusInternalServerError)
-		return
-	}
-
 	if h.key != "" {
-		isEqual := checkHash(bodyBytes, h.key, r.Header.Get("HashSHA256"))
-		if !isEqual {
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "error reading request body", http.StatusInternalServerError)
+			return
+		}
+
+		requestHash := r.Header.Get("HashSHA256")
+		if !checkHash(bodyBytes, h.key, requestHash) {
 			h.logger.Info("hash not equal")
 			http.Error(w, "хэш не совпадает", http.StatusBadRequest)
 			return
@@ -245,14 +247,12 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkHash(data []byte, key string, requestHash string) bool {
-	hashed := getHash(data, key)
-
-	return hmac.Equal(hashed, []byte(requestHash))
+	return hmac.Equal([]byte(getHash(data, key)), []byte(requestHash))
 }
 
-func getHash(data []byte, key string) []byte {
+func getHash(data []byte, key string) string {
 	h := hmac.New(sha256.New, []byte(key))
 	h.Write(data)
 
-	return h.Sum(nil)
+	return hex.EncodeToString(h.Sum(nil))
 }
