@@ -88,7 +88,7 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if h.key != "" {
+	if r.Header.Get("HashSHA256") != "" && h.key != "" {
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "error reading request body", http.StatusInternalServerError)
@@ -124,7 +124,7 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.key != "" {
+	if r.Header.Get("HashSHA256") != "" && h.key != "" {
 		w.Header().Set("HashSHA256", string(getHash(resp, h.key)))
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -206,7 +206,7 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if h.key != "" {
+	if r.Header.Get("HashSHA256") != "" && h.key != "" {
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "error reading request body", http.StatusInternalServerError)
@@ -235,7 +235,7 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.key != "" {
+	if r.Header.Get("HashSHA256") != "" && h.key != "" {
 		w.Header().Set("HashSHA256", string(getHash(resp, h.key)))
 	}
 	w.Header().Set("Content-Type", "application/json")
