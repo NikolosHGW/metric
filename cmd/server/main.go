@@ -41,7 +41,7 @@ func run() error {
 		databaseStrg := storage.NewDBStorage(database, logger.Log)
 		metricService = services.NewMetricService(databaseStrg)
 	}
-	handler := handlers.NewHandler(metricService, logger.Log)
+	handler := handlers.NewHandler(metricService, logger.Log, config.GetKey())
 	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()

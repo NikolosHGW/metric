@@ -36,7 +36,7 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
 
-	handler := NewHandler(metricService, &mockLogger{})
+	handler := NewHandler(metricService, &mockLogger{}, "")
 	server := httptest.NewServer(http.HandlerFunc(handler.SetJSONMetric))
 	defer server.Close()
 
@@ -91,7 +91,7 @@ func TestHandler_GetMetric(t *testing.T) {
 	metricService := services.NewMetricService(strg)
 	metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
 	metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
-	h := NewHandler(metricService, &mockLogger{})
+	h := NewHandler(metricService, &mockLogger{}, "")
 
 	tests := []struct {
 		name           string
@@ -238,7 +238,7 @@ func TestWithSetMetricHandle(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, test.url, nil)
 			w := httptest.NewRecorder()
 
-			handler := NewHandler(metricService, &mockLogger{})
+			handler := NewHandler(metricService, &mockLogger{}, "")
 			handler.SetMetric(w, request)
 
 			res := w.Result()
@@ -257,7 +257,7 @@ func TestWithSetMetricHandle2(t *testing.T) {
 
 	r := chi.NewRouter()
 
-	handler := NewHandler(metricService, &mockLogger{})
+	handler := NewHandler(metricService, &mockLogger{}, "")
 
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.SetMetric)
 
@@ -312,7 +312,7 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 	strg := &storageMock{}
 	metricService := services.NewMetricService(strg)
 
-	handler := NewHandler(metricService, &mockLogger{})
+	handler := NewHandler(metricService, &mockLogger{}, "")
 
 	r := chi.NewRouter()
 	r.Get("/{metricType}/{metricName}", handler.GetValueMetric)
@@ -382,7 +382,7 @@ func TestWithGetMetricsHandle(t *testing.T) {
 	strg := storageMock{}
 	metricService := services.NewMetricService(strg)
 
-	handler := NewHandler(metricService, &mockLogger{})
+	handler := NewHandler(metricService, &mockLogger{}, "")
 
 	r := chi.NewRouter()
 	r.Get("/", handler.GetMetrics)

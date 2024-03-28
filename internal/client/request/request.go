@@ -3,6 +3,9 @@ package request
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -114,7 +117,7 @@ func getResultURL(host, metricType, metricName, metricValue string) string {
 	return sb.String()
 }
 
-func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
+func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
@@ -132,6 +135,8 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
 				continue
 			}
+
+			hash := hash(data, key)
 
 			buf := bytes.NewBuffer(nil)
 			zb := gzip.NewWriter(buf)
@@ -154,6 +159,9 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 			nr.Header.Set("Content-Type", "application/json")
 			nr.Header.Set("Content-Encoding", "gzip")
 			nr.Header.Set("Accept-Encoding", "gzip")
+			if hash != "" {
+				nr.Header.Set("HashSHA256", hash)
+			}
 			resp, err := http.DefaultClient.Do(nr)
 
 			if err != nil {
@@ -168,7 +176,7 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 	}
 }
 
-func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host string) {
+func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
 	for {
 		var metricsBatch []models.Metrics
@@ -191,6 +199,8 @@ func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 			continue
 		}
 
+		hash := hash(data, key)
+
 		buf := bytes.NewBuffer(nil)
 		zb := gzip.NewWriter(buf)
 		_, gzipErr := zb.Write(data)
@@ -212,6 +222,9 @@ func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 		nr.Header.Set("Content-Type", "application/json")
 		nr.Header.Set("Content-Encoding", "gzip")
 		nr.Header.Set("Accept-Encoding", "gzip")
+		if hash != "" {
+			nr.Header.Set("HashSHA256", hash)
+		}
 		resp, err := http.DefaultClient.Do(nr)
 
 		if err != nil {
@@ -265,4 +278,14 @@ func getFloatValue(metricType string, value interface{}) float64 {
 	}
 
 	return 0
+}
+
+func hash(data []byte, key string) string {
+	if key != "" {
+		h := hmac.New(sha256.New, []byte(key))
+		h.Write(data)
+		return hex.EncodeToString(h.Sum(nil))
+	}
+
+	return ""
 }
