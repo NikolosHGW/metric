@@ -22,7 +22,7 @@ func (m *mockLogger) Info(msg string, fields ...zap.Field) {}
 func TestWithGzip(t *testing.T) {
 	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
-	handler := handlers.NewHandler(metricService, &mockLogger{}, "")
+	handler := handlers.NewHandler(metricService, &mockLogger{})
 
 	h := WithGzip(http.HandlerFunc(handler.SetJSONMetric))
 

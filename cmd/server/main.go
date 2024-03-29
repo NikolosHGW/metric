@@ -8,6 +8,7 @@ import (
 	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/logger"
+	"github.com/NikolosHGW/metric/internal/server/middlewares"
 	"github.com/NikolosHGW/metric/internal/server/routes"
 	"github.com/NikolosHGW/metric/internal/server/services"
 	"github.com/NikolosHGW/metric/internal/server/storage"
@@ -41,13 +42,15 @@ func run() error {
 		databaseStrg := storage.NewDBStorage(database, logger.Log)
 		metricService = services.NewMetricService(databaseStrg)
 	}
-	handler := handlers.NewHandler(metricService, logger.Log, config.GetKey())
+	handler := handlers.NewHandler(metricService, logger.Log)
 	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
 	go diskService.CollectMetrics()
 
-	r := routes.InitRouter(handler)
+	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
+
+	r := routes.InitRouter(handler, hashMiddleware)
 
 	logger.Log.Info("Running server", zap.String("address", config.Address))
 
