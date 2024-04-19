@@ -13,8 +13,21 @@ func main() {
 	stats := metrics.NewMetrics()
 
 	go request.CollectMetrics(stats, config.GetPollInterval())
-	go request.SendJSONMetrics(stats, config.GetReportInterval(), config.GetAddress(), config.GetKey())
-	go request.SendBatchJSONMetrics(stats, config.GetReportInterval(), config.GetAddress(), config.GetKey())
+
+	rateLimit := config.GetRateLimit()
+
+	requests := make(chan struct{}, rateLimit)
+
+	for i := 0; i < rateLimit; i++ {
+		go func() {
+			for {
+				requests <- struct{}{}
+				request.SendBatchJSONMetrics(stats, config.GetReportInterval(), config.GetAddress(), config.GetKey())
+				<-requests
+				time.Sleep(time.Duration(config.GetReportInterval()) * time.Second)
+			}
+		}()
+	}
 
 	for {
 		time.Sleep(10 * time.Second)

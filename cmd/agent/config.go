@@ -11,6 +11,7 @@ type config struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	Address        string `env:"ADDRESS"`
 	Key            string `env:"KEY"`
+	RateLimit      int    `end:"RATE_LIMIT"`
 }
 
 func (c config) GetPollInterval() int {
@@ -29,6 +30,10 @@ func (c config) GetKey() string {
 	return c.Key
 }
 
+func (c config) GetRateLimit() int {
+	return c.RateLimit
+}
+
 func (c *config) InitEnv() {
 	env.Parse(c)
 }
@@ -38,6 +43,7 @@ func (c *config) parseFlags() {
 	flag.IntVar(&c.ReportInterval, "r", 10, "report seconds interval")
 	flag.IntVar(&c.PollInterval, "p", 2, "poll seconds interval")
 	flag.StringVar(&c.Key, "k", "", "secret key for hash")
+	flag.IntVar(&c.RateLimit, "l", 10, "Rate limit for outgoing requests")
 
 	flag.Parse()
 }

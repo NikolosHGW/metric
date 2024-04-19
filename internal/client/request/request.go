@@ -178,64 +178,55 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 
 func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
-	for {
-		var metricsBatch []models.Metrics
+	var metricsBatch []models.Metrics
 
-		for k, v := range m.GetMetrics() {
-			delta := getIntValue(metricTypeMap[k], v)
-			value := getFloatValue(metricTypeMap[k], v)
-			metric := models.Metrics{
-				ID:    k,
-				MType: metricTypeMap[k],
-				Delta: &delta,
-				Value: &value,
-			}
-			metricsBatch = append(metricsBatch, metric)
+	for k, v := range m.GetMetrics() {
+		delta := getIntValue(metricTypeMap[k], v)
+		value := getFloatValue(metricTypeMap[k], v)
+		metric := models.Metrics{
+			ID:    k,
+			MType: metricTypeMap[k],
+			Delta: &delta,
+			Value: &value,
 		}
-
-		data, err := json.Marshal(metricsBatch)
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Marshal", err)
-			continue
-		}
-
-		hash := hash(data, key)
-
-		buf := bytes.NewBuffer(nil)
-		zb := gzip.NewWriter(buf)
-		_, gzipErr := zb.Write(data)
-		if gzipErr != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip write", gzipErr)
-			continue
-		}
-		err = zb.Close()
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip close", err)
-			continue
-		}
-
-		nr, err := http.NewRequest(http.MethodPost, getUpdatesURL(host), buf)
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot create NewRequest", err)
-			continue
-		}
-		nr.Header.Set("Content-Type", "application/json")
-		nr.Header.Set("Content-Encoding", "gzip")
-		nr.Header.Set("Accept-Encoding", "gzip")
-		if hash != "" {
-			nr.Header.Set("HashSHA256", hash)
-		}
-		resp, err := http.DefaultClient.Do(nr)
-
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Post", err)
-			continue
-		}
-		log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
-		resp.Body.Close()
-
-		time.Sleep(time.Duration(reportInterval) * time.Second)
+		metricsBatch = append(metricsBatch, metric)
 	}
+
+	data, err := json.Marshal(metricsBatch)
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Marshal", err)
+	}
+
+	hash := hash(data, key)
+
+	buf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(buf)
+	_, gzipErr := zb.Write(data)
+	if gzipErr != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip write", gzipErr)
+	}
+	err = zb.Close()
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip close", err)
+	}
+
+	nr, err := http.NewRequest(http.MethodPost, getUpdatesURL(host), buf)
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot create NewRequest", err)
+	}
+	nr.Header.Set("Content-Type", "application/json")
+	nr.Header.Set("Content-Encoding", "gzip")
+	nr.Header.Set("Accept-Encoding", "gzip")
+	if hash != "" {
+		nr.Header.Set("HashSHA256", hash)
+	}
+	resp, err := http.DefaultClient.Do(nr)
+
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Post", err)
+	}
+	log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
+	resp.Body.Close()
 }
 
 func getURL(host string) string {
