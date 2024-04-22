@@ -21,47 +21,54 @@ type ClientMetrics interface {
 	UpdateRandomValue()
 	RefreshMetrics()
 	GetMetrics() map[string]interface{}
+	LockMutex()
+	UnlockMutex()
 }
 
 func GetMetricTypeMap() map[string]string {
 	return map[string]string{
-		models.Alloc:         models.GaugeType,
-		models.BuckHashSys:   models.GaugeType,
-		models.Frees:         models.GaugeType,
-		models.GCCPUFraction: models.GaugeType,
-		models.GCSys:         models.GaugeType,
-		models.HeapAlloc:     models.GaugeType,
-		models.HeapIdle:      models.GaugeType,
-		models.HeapInuse:     models.GaugeType,
-		models.HeapObjects:   models.GaugeType,
-		models.HeapReleased:  models.GaugeType,
-		models.HeapSys:       models.GaugeType,
-		models.LastGC:        models.GaugeType,
-		models.Lookups:       models.GaugeType,
-		models.MCacheInuse:   models.GaugeType,
-		models.MCacheSys:     models.GaugeType,
-		models.MSpanInuse:    models.GaugeType,
-		models.MSpanSys:      models.GaugeType,
-		models.Mallocs:       models.GaugeType,
-		models.NextGC:        models.GaugeType,
-		models.NumForcedGC:   models.GaugeType,
-		models.NumGC:         models.GaugeType,
-		models.OtherSys:      models.GaugeType,
-		models.PauseTotalNs:  models.GaugeType,
-		models.StackInuse:    models.GaugeType,
-		models.StackSys:      models.GaugeType,
-		models.Sys:           models.GaugeType,
-		models.TotalAlloc:    models.GaugeType,
-		models.PollCount:     models.CounterType,
-		models.RandomValue:   models.GaugeType,
+		models.Alloc:           models.GaugeType,
+		models.BuckHashSys:     models.GaugeType,
+		models.Frees:           models.GaugeType,
+		models.GCCPUFraction:   models.GaugeType,
+		models.GCSys:           models.GaugeType,
+		models.HeapAlloc:       models.GaugeType,
+		models.HeapIdle:        models.GaugeType,
+		models.HeapInuse:       models.GaugeType,
+		models.HeapObjects:     models.GaugeType,
+		models.HeapReleased:    models.GaugeType,
+		models.HeapSys:         models.GaugeType,
+		models.LastGC:          models.GaugeType,
+		models.Lookups:         models.GaugeType,
+		models.MCacheInuse:     models.GaugeType,
+		models.MCacheSys:       models.GaugeType,
+		models.MSpanInuse:      models.GaugeType,
+		models.MSpanSys:        models.GaugeType,
+		models.Mallocs:         models.GaugeType,
+		models.NextGC:          models.GaugeType,
+		models.NumForcedGC:     models.GaugeType,
+		models.NumGC:           models.GaugeType,
+		models.OtherSys:        models.GaugeType,
+		models.PauseTotalNs:    models.GaugeType,
+		models.StackInuse:      models.GaugeType,
+		models.StackSys:        models.GaugeType,
+		models.Sys:             models.GaugeType,
+		models.TotalAlloc:      models.GaugeType,
+		models.PollCount:       models.CounterType,
+		models.RandomValue:     models.GaugeType,
+		models.TotalMemory:     models.GaugeType,
+		models.FreeMemory:      models.GaugeType,
+		models.CPUutilization1: models.GaugeType,
 	}
 }
 
 func CollectMetrics(m ClientMetrics, pollInterval int) {
 	for {
+		m.LockMutex()
 		m.RefreshMetrics()
 		m.IncPollCount()
 		m.UpdateRandomValue()
+		m.UnlockMutex()
 
 		time.Sleep(time.Duration(pollInterval) * time.Second)
 	}
@@ -176,7 +183,7 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 	}
 }
 
-func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
+func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
 	var metricsBatch []models.Metrics
 
@@ -195,6 +202,7 @@ func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host, key string)
 	data, err := json.Marshal(metricsBatch)
 	if err != nil {
 		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Marshal", err)
+		return
 	}
 
 	hash := hash(data, key)
@@ -204,15 +212,18 @@ func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host, key string)
 	_, gzipErr := zb.Write(data)
 	if gzipErr != nil {
 		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip write", gzipErr)
+		return
 	}
 	err = zb.Close()
 	if err != nil {
 		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip close", err)
+		return
 	}
 
 	nr, err := http.NewRequest(http.MethodPost, getUpdatesURL(host), buf)
 	if err != nil {
 		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot create NewRequest", err)
+		return
 	}
 	nr.Header.Set("Content-Type", "application/json")
 	nr.Header.Set("Content-Encoding", "gzip")
@@ -224,6 +235,7 @@ func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host, key string)
 
 	if err != nil {
 		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Post", err)
+		return
 	}
 	log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
 	resp.Body.Close()
