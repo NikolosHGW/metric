@@ -32,7 +32,7 @@ func InitRouter(handler Handler, middleware Middleware) *chi.Mux {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetMetrics)
 		r.Get("/ping", handler.PingDB)
-		r.With(middleware.WithHash).Post("/updates/", handler.UpsertMetrics)
+		r.With(middleware.WithHash).Post("/updates", handler.UpsertMetrics)
 
 		update.InitUpdateRoutes(r, handler.SetMetric, handler.SetJSONMetric)
 		value.InitValueRoutes(r, handler.GetValueMetric, handler.GetMetric)
