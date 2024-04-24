@@ -53,6 +53,8 @@ func main() {
 		}()
 	}
 
+	go request.SendJSONMetrics(stats, reportInterval, adress, key)
+
 	for {
 		time.Sleep(10 * time.Second)
 	}
