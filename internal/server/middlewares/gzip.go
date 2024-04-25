@@ -3,7 +3,6 @@ package middlewares
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -74,12 +73,6 @@ func (c *compressReader) Close() error {
 
 func WithGzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for name, values := range r.Header {
-			for _, value := range values {
-				log.Printf("%s: %s", name, value)
-			}
-		}
-
 		ow := w
 
 		acceptEncoding := strings.Join(r.Header.Values("Accept-Encoding"), ", ")
@@ -99,7 +92,6 @@ func WithGzip(next http.Handler) http.Handler {
 
 		contentEncoding := strings.Join(r.Header.Values("Content-Encoding"), ", ")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		log.Printf("%v: %v", contentEncoding, sendsGzip)
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
