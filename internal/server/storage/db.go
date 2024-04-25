@@ -25,6 +25,8 @@ type DBStorage struct {
 }
 
 func (ds *DBStorage) SetMetric(ctx context.Context, m models.Metrics) error {
+	ds.m.Lock()
+	defer ds.m.Unlock()
 	_, err := ds.sql.ExecContext(
 		ctx,
 		`INSERT INTO metrics (id, type, delta, value)
