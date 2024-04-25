@@ -256,7 +256,7 @@ func getUpdatesURL(host string) string {
 
 	sb.WriteString("http://")
 	sb.WriteString(host)
-	sb.WriteString("/updates")
+	sb.WriteString("/updates/")
 
 	return sb.String()
 }
