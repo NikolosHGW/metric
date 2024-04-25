@@ -155,28 +155,23 @@ func (ds *DBStorage) UpsertMetrics(ctx context.Context, metricCollection models.
 		return *models.NewMetricCollection(), err
 	}
 
-	query := `INSERT INTO metrics (id, type, delta, value) VALUES `
-	values := []interface{}{}
-
-	for i, metric := range metricCollection.Metrics {
-		num := i * 4
-		query += fmt.Sprintf("($%d, $%d, $%d, $%d),", num+1, num+2, num+3, num+4)
-		values = append(values, metric.ID, metric.MType, metric.Delta, metric.Value)
-	}
-
-	query = query[:len(query)-1]
-
-	query += `
-    ON CONFLICT (id) DO UPDATE SET
-        type = EXCLUDED.type,
-        delta = metrics.delta + EXCLUDED.delta,
-        value = EXCLUDED.value
-    RETURNING *`
-
-	err = tx.SelectContext(ctx, &upsertedMetrics, query, values...)
-	if err != nil {
-		tx.Rollback()
-		return *models.NewMetricCollection(), err
+	for _, metric := range metricCollection.Metrics {
+		var upsertedMetric models.Metrics
+		err := tx.GetContext(ctx, &upsertedMetric,
+			`INSERT INTO metrics (id, type, delta, value)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (id) DO UPDATE SET
+                type = EXCLUDED.type,
+                delta = metrics.delta + EXCLUDED.delta,
+                value = EXCLUDED.value
+            RETURNING *`,
+			metric.ID, metric.MType, metric.Delta, metric.Value,
+		)
+		if err != nil {
+			tx.Rollback()
+			return *models.NewMetricCollection(), err
+		}
+		upsertedMetrics = append(upsertedMetrics, upsertedMetric)
 	}
 
 	if err := tx.Commit(); err != nil {
