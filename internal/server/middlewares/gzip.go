@@ -99,6 +99,7 @@ func WithGzip(next http.Handler) http.Handler {
 
 		contentEncoding := strings.Join(r.Header.Values("Content-Encoding"), ", ")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		log.Printf("%v: %v", contentEncoding, sendsGzip)
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
