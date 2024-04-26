@@ -25,22 +25,17 @@ func main() {
 
 	requests := make(chan struct{}, rateLimit)
 
-	reportInterval := config.GetReportInterval()
-	adress := config.GetAddress()
-	key := config.GetKey()
+	reportTicker := time.NewTicker(time.Duration(config.GetReportInterval()) * time.Second)
 
 	for i := 0; i < rateLimit; i++ {
 		go func() {
-			for {
+			for range reportTicker.C {
 				requests <- struct{}{}
-				request.SendBatchJSONMetrics(stats, adress, key)
+				request.SendBatchJSONMetrics(stats, config.GetAddress(), config.GetKey())
 				<-requests
-				time.Sleep(time.Duration(reportInterval) * time.Second)
 			}
 		}()
 	}
 
-	for {
-		time.Sleep(10 * time.Second)
-	}
+	select {}
 }
