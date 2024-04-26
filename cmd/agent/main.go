@@ -1,14 +1,10 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/NikolosHGW/metric/internal/client/metrics"
 	"github.com/NikolosHGW/metric/internal/client/request"
-	"github.com/NikolosHGW/metric/internal/models"
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/mem"
 )
 
 func main() {
@@ -16,21 +12,12 @@ func main() {
 
 	stats := metrics.NewMetrics()
 
-	go request.CollectMetrics(stats, config.GetPollInterval())
+	pollTicker := time.NewTicker(time.Duration(config.GetPollInterval()) * time.Second)
+
 	go func() {
-		for {
-			stats.LockMutex()
-			v, err := mem.VirtualMemory()
-			if err != nil {
-				log.Println("failed virtual memory metrics", err)
-			}
-			cpuPercentages, err := cpu.Percent(0, false)
-			if err != nil {
-				log.Println("failed cpu percent", err)
-			}
-			stats.SetAdvanceMetrics(models.Gauge(v.Total), models.Gauge(v.Free), models.Gauge(cpuPercentages[0]))
-			time.Sleep(time.Duration(config.GetPollInterval()) * time.Second)
-			stats.UnlockMutex()
+		for range pollTicker.C {
+			stats.CollectMetrics()
+			stats.CollectAdvancedMetric()
 		}
 	}()
 

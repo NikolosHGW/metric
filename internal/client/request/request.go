@@ -62,18 +62,6 @@ func GetMetricTypeMap() map[string]string {
 	}
 }
 
-func CollectMetrics(m ClientMetrics, pollInterval int) {
-	for {
-		m.LockMutex()
-		m.RefreshMetrics()
-		m.IncPollCount()
-		m.UpdateRandomValue()
-		m.UnlockMutex()
-
-		time.Sleep(time.Duration(pollInterval) * time.Second)
-	}
-}
-
 func SendMetrics(m ClientMetrics, reportInterval int, host string) {
 	metricTypeMap := GetMetricTypeMap()
 	for {

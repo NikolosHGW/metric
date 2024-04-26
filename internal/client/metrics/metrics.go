@@ -1,11 +1,14 @@
 package metrics
 
 import (
+	"log"
 	"math/rand"
 	"runtime"
 	"sync"
 
 	"github.com/NikolosHGW/metric/internal/models"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type Metrics struct {
@@ -82,8 +85,30 @@ func NewMetrics() *Metrics {
 	return new(Metrics)
 }
 
+func (m *Metrics) CollectMetrics() {
+	m.LockMutex()
+	m.RefreshMetrics()
+	m.IncPollCount()
+	m.UpdateRandomValue()
+	m.UnlockMutex()
+}
+
 func (m *Metrics) SetAdvanceMetrics(tm, fm, cpu models.Gauge) {
 	m.TotalMemory = tm
 	m.FreeMemory = fm
 	m.CPUutilization1 = cpu
+}
+
+func (m *Metrics) CollectAdvancedMetric() {
+	m.LockMutex()
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		log.Println("failed virtual memory metrics", err)
+	}
+	cpuPercentages, err := cpu.Percent(0, false)
+	if err != nil {
+		log.Println("failed cpu percent", err)
+	}
+	m.SetAdvanceMetrics(models.Gauge(v.Total), models.Gauge(v.Free), models.Gauge(cpuPercentages[0]))
+	m.UnlockMutex()
 }
