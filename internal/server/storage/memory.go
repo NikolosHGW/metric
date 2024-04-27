@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/NikolosHGW/metric/internal/models"
 )
@@ -15,9 +16,10 @@ type metricValue struct {
 
 type MemStorage struct {
 	metrics map[string]metricValue
+	mtx     sync.Mutex
 }
 
-func (ms MemStorage) GetGaugeMetric(_ context.Context, name string) (models.Gauge, error) {
+func (ms *MemStorage) GetGaugeMetric(_ context.Context, name string) (models.Gauge, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		return metric.gauge, nil
@@ -26,7 +28,7 @@ func (ms MemStorage) GetGaugeMetric(_ context.Context, name string) (models.Gaug
 	return 0, fmt.Errorf("gauge metric %s not found", name)
 }
 
-func (ms MemStorage) GetCounterMetric(_ context.Context, name string) (models.Counter, error) {
+func (ms *MemStorage) GetCounterMetric(_ context.Context, name string) (models.Counter, error) {
 	metric, exist := ms.metrics[name]
 	if exist {
 		return metric.counter, nil
@@ -36,6 +38,7 @@ func (ms MemStorage) GetCounterMetric(_ context.Context, name string) (models.Co
 }
 
 func (ms *MemStorage) SetGaugeMetric(_ context.Context, name string, value models.Gauge) error {
+	ms.mtx.Lock()
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.gauge = value
@@ -49,10 +52,13 @@ func (ms *MemStorage) SetGaugeMetric(_ context.Context, name string, value model
 		}
 	}
 
+	ms.mtx.Unlock()
+
 	return nil
 }
 
 func (ms *MemStorage) SetCounterMetric(_ context.Context, name string, value models.Counter) error {
+	ms.mtx.Lock()
 	metric, exist := ms.metrics[name]
 	if exist {
 		metric.counter += value
@@ -65,6 +71,8 @@ func (ms *MemStorage) SetCounterMetric(_ context.Context, name string, value mod
 			counter: value,
 		}
 	}
+
+	ms.mtx.Unlock()
 
 	return nil
 }
@@ -108,7 +116,7 @@ func (ms *MemStorage) GetMetricsModels(ctx context.Context) []models.Metrics {
 	return models
 }
 
-func (ms MemStorage) GetAllMetrics(_ context.Context) []string {
+func (ms *MemStorage) GetAllMetrics(_ context.Context) []string {
 	result := make([]string, len(ms.metrics))
 
 	keys := make([]string, 0, len(ms.metrics))
@@ -116,10 +124,8 @@ func (ms MemStorage) GetAllMetrics(_ context.Context) []string {
 		keys = append(keys, k)
 	}
 
-	// Сортируем срез ключей
 	sort.Strings(keys)
 
-	// Итерируем по отсортированному срезу и заполняем результат
 	i := 0
 	for _, k := range keys {
 		v := ms.metrics[k]

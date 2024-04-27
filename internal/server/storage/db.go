@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -20,9 +21,12 @@ func NewDBStorage(sql *sqlx.DB, log customLogger) *DBStorage {
 type DBStorage struct {
 	sql *sqlx.DB
 	log customLogger
+	m   sync.Mutex
 }
 
-func (ds DBStorage) SetMetric(ctx context.Context, m models.Metrics) error {
+func (ds *DBStorage) SetMetric(ctx context.Context, m models.Metrics) error {
+	ds.m.Lock()
+	defer ds.m.Unlock()
 	_, err := ds.sql.ExecContext(
 		ctx,
 		`INSERT INTO metrics (id, type, delta, value)
@@ -39,7 +43,7 @@ func (ds DBStorage) SetMetric(ctx context.Context, m models.Metrics) error {
 	return err
 }
 
-func (ds DBStorage) GetMetric(ctx context.Context, name string) (models.Metrics, error) {
+func (ds *DBStorage) GetMetric(ctx context.Context, name string) (models.Metrics, error) {
 	row := ds.sql.QueryRowxContext(ctx, "SELECT id, type, delta, value FROM metrics WHERE id = $1", name)
 
 	model := models.Metrics{}
@@ -53,7 +57,7 @@ func (ds DBStorage) GetMetric(ctx context.Context, name string) (models.Metrics,
 	return model, err
 }
 
-func (ds DBStorage) SetGaugeMetric(ctx context.Context, name string, value models.Gauge) error {
+func (ds *DBStorage) SetGaugeMetric(ctx context.Context, name string, value models.Gauge) error {
 	metric := models.Metrics{
 		ID:    name,
 		MType: models.GaugeType,
@@ -63,7 +67,7 @@ func (ds DBStorage) SetGaugeMetric(ctx context.Context, name string, value model
 	return ds.SetMetric(ctx, metric)
 }
 
-func (ds DBStorage) SetCounterMetric(ctx context.Context, name string, value models.Counter) error {
+func (ds *DBStorage) SetCounterMetric(ctx context.Context, name string, value models.Counter) error {
 	metric := models.Metrics{
 		ID:    name,
 		MType: models.CounterType,
@@ -73,7 +77,7 @@ func (ds DBStorage) SetCounterMetric(ctx context.Context, name string, value mod
 	return ds.SetMetric(ctx, metric)
 }
 
-func (ds DBStorage) GetGaugeMetric(ctx context.Context, name string) (models.Gauge, error) {
+func (ds *DBStorage) GetGaugeMetric(ctx context.Context, name string) (models.Gauge, error) {
 	metric, err := ds.GetMetric(ctx, name)
 
 	if err != nil {
@@ -84,7 +88,7 @@ func (ds DBStorage) GetGaugeMetric(ctx context.Context, name string) (models.Gau
 	return models.Gauge(*metric.Value), err
 }
 
-func (ds DBStorage) GetCounterMetric(ctx context.Context, name string) (models.Counter, error) {
+func (ds *DBStorage) GetCounterMetric(ctx context.Context, name string) (models.Counter, error) {
 	metric, err := ds.GetMetric(ctx, name)
 
 	if err != nil {
@@ -95,7 +99,7 @@ func (ds DBStorage) GetCounterMetric(ctx context.Context, name string) (models.C
 	return models.Counter(*metric.Delta), err
 }
 
-func (ds DBStorage) GetAllMetrics(ctx context.Context) []string {
+func (ds *DBStorage) GetAllMetrics(ctx context.Context) []string {
 	rows, err := ds.sql.QueryxContext(ctx, "SELECT id, type, delta, value FROM metrics ORDER BY id")
 
 	var metricStrings []string
@@ -135,13 +139,15 @@ func (ds DBStorage) GetAllMetrics(ctx context.Context) []string {
 	return metricStrings
 }
 
-func (ds DBStorage) GetIsDBConnected() bool {
+func (ds *DBStorage) GetIsDBConnected() bool {
 	err := ds.sql.DB.Ping()
 
 	return err == nil
 }
 
 func (ds *DBStorage) UpsertMetrics(ctx context.Context, metricCollection models.MetricCollection) (models.MetricCollection, error) {
+	ds.m.Lock()
+	defer ds.m.Unlock()
 	var upsertedMetrics []models.Metrics
 
 	tx, err := ds.sql.BeginTxx(ctx, nil)

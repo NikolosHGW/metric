@@ -3,6 +3,9 @@ package request
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -18,49 +21,44 @@ type ClientMetrics interface {
 	UpdateRandomValue()
 	RefreshMetrics()
 	GetMetrics() map[string]interface{}
+	LockMutex()
+	UnlockMutex()
 }
 
 func GetMetricTypeMap() map[string]string {
 	return map[string]string{
-		models.Alloc:         models.GaugeType,
-		models.BuckHashSys:   models.GaugeType,
-		models.Frees:         models.GaugeType,
-		models.GCCPUFraction: models.GaugeType,
-		models.GCSys:         models.GaugeType,
-		models.HeapAlloc:     models.GaugeType,
-		models.HeapIdle:      models.GaugeType,
-		models.HeapInuse:     models.GaugeType,
-		models.HeapObjects:   models.GaugeType,
-		models.HeapReleased:  models.GaugeType,
-		models.HeapSys:       models.GaugeType,
-		models.LastGC:        models.GaugeType,
-		models.Lookups:       models.GaugeType,
-		models.MCacheInuse:   models.GaugeType,
-		models.MCacheSys:     models.GaugeType,
-		models.MSpanInuse:    models.GaugeType,
-		models.MSpanSys:      models.GaugeType,
-		models.Mallocs:       models.GaugeType,
-		models.NextGC:        models.GaugeType,
-		models.NumForcedGC:   models.GaugeType,
-		models.NumGC:         models.GaugeType,
-		models.OtherSys:      models.GaugeType,
-		models.PauseTotalNs:  models.GaugeType,
-		models.StackInuse:    models.GaugeType,
-		models.StackSys:      models.GaugeType,
-		models.Sys:           models.GaugeType,
-		models.TotalAlloc:    models.GaugeType,
-		models.PollCount:     models.CounterType,
-		models.RandomValue:   models.GaugeType,
-	}
-}
-
-func CollectMetrics(m ClientMetrics, pollInterval int) {
-	for {
-		m.RefreshMetrics()
-		m.IncPollCount()
-		m.UpdateRandomValue()
-
-		time.Sleep(time.Duration(pollInterval) * time.Second)
+		models.Alloc:           models.GaugeType,
+		models.BuckHashSys:     models.GaugeType,
+		models.Frees:           models.GaugeType,
+		models.GCCPUFraction:   models.GaugeType,
+		models.GCSys:           models.GaugeType,
+		models.HeapAlloc:       models.GaugeType,
+		models.HeapIdle:        models.GaugeType,
+		models.HeapInuse:       models.GaugeType,
+		models.HeapObjects:     models.GaugeType,
+		models.HeapReleased:    models.GaugeType,
+		models.HeapSys:         models.GaugeType,
+		models.LastGC:          models.GaugeType,
+		models.Lookups:         models.GaugeType,
+		models.MCacheInuse:     models.GaugeType,
+		models.MCacheSys:       models.GaugeType,
+		models.MSpanInuse:      models.GaugeType,
+		models.MSpanSys:        models.GaugeType,
+		models.Mallocs:         models.GaugeType,
+		models.NextGC:          models.GaugeType,
+		models.NumForcedGC:     models.GaugeType,
+		models.NumGC:           models.GaugeType,
+		models.OtherSys:        models.GaugeType,
+		models.PauseTotalNs:    models.GaugeType,
+		models.StackInuse:      models.GaugeType,
+		models.StackSys:        models.GaugeType,
+		models.Sys:             models.GaugeType,
+		models.TotalAlloc:      models.GaugeType,
+		models.PollCount:       models.CounterType,
+		models.RandomValue:     models.GaugeType,
+		models.TotalMemory:     models.GaugeType,
+		models.FreeMemory:      models.GaugeType,
+		models.CPUutilization1: models.GaugeType,
 	}
 }
 
@@ -114,7 +112,7 @@ func getResultURL(host, metricType, metricName, metricValue string) string {
 	return sb.String()
 }
 
-func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
+func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
@@ -132,6 +130,8 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 				log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
 				continue
 			}
+
+			hash := hash(data, key)
 
 			buf := bytes.NewBuffer(nil)
 			zb := gzip.NewWriter(buf)
@@ -154,6 +154,9 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 			nr.Header.Set("Content-Type", "application/json")
 			nr.Header.Set("Content-Encoding", "gzip")
 			nr.Header.Set("Accept-Encoding", "gzip")
+			if hash != "" {
+				nr.Header.Set("HashSHA256", hash)
+			}
 			resp, err := http.DefaultClient.Do(nr)
 
 			if err != nil {
@@ -168,61 +171,62 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host string) {
 	}
 }
 
-func SendBatchJSONMetrics(m ClientMetrics, reportInterval int, host string) {
+func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
-	for {
-		var metricsBatch []models.Metrics
+	var metricsBatch []models.Metrics
 
-		for k, v := range m.GetMetrics() {
-			delta := getIntValue(metricTypeMap[k], v)
-			value := getFloatValue(metricTypeMap[k], v)
-			metric := models.Metrics{
-				ID:    k,
-				MType: metricTypeMap[k],
-				Delta: &delta,
-				Value: &value,
-			}
-			metricsBatch = append(metricsBatch, metric)
+	for k, v := range m.GetMetrics() {
+		delta := getIntValue(metricTypeMap[k], v)
+		value := getFloatValue(metricTypeMap[k], v)
+		metric := models.Metrics{
+			ID:    k,
+			MType: metricTypeMap[k],
+			Delta: &delta,
+			Value: &value,
 		}
-
-		data, err := json.Marshal(metricsBatch)
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Marshal", err)
-			continue
-		}
-
-		buf := bytes.NewBuffer(nil)
-		zb := gzip.NewWriter(buf)
-		_, gzipErr := zb.Write(data)
-		if gzipErr != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip write", gzipErr)
-			continue
-		}
-		err = zb.Close()
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip close", err)
-			continue
-		}
-
-		nr, err := http.NewRequest(http.MethodPost, getUpdatesURL(host), buf)
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot create NewRequest", err)
-			continue
-		}
-		nr.Header.Set("Content-Type", "application/json")
-		nr.Header.Set("Content-Encoding", "gzip")
-		nr.Header.Set("Accept-Encoding", "gzip")
-		resp, err := http.DefaultClient.Do(nr)
-
-		if err != nil {
-			log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Post", err)
-			continue
-		}
-		log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
-		resp.Body.Close()
-
-		time.Sleep(time.Duration(reportInterval) * time.Second)
+		metricsBatch = append(metricsBatch, metric)
 	}
+
+	data, err := json.Marshal(metricsBatch)
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Marshal", err)
+		return
+	}
+
+	hash := hash(data, key)
+
+	buf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(buf)
+	_, gzipErr := zb.Write(data)
+	if gzipErr != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip write", gzipErr)
+		return
+	}
+	err = zb.Close()
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot gzip close", err)
+		return
+	}
+
+	nr, err := http.NewRequest(http.MethodPost, getUpdatesURL(host), buf)
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot create NewRequest", err)
+		return
+	}
+	nr.Header.Set("Content-Type", "application/json")
+	nr.Header.Set("Content-Encoding", "gzip")
+	nr.Header.Set("Accept-Encoding", "gzip")
+	if hash != "" {
+		nr.Header.Set("HashSHA256", hash)
+	}
+	resp, err := http.DefaultClient.Do(nr)
+
+	if err != nil {
+		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Post", err)
+		return
+	}
+	log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
+	resp.Body.Close()
 }
 
 func getURL(host string) string {
@@ -240,7 +244,7 @@ func getUpdatesURL(host string) string {
 
 	sb.WriteString("http://")
 	sb.WriteString(host)
-	sb.WriteString("/updates")
+	sb.WriteString("/updates/")
 
 	return sb.String()
 }
@@ -265,4 +269,14 @@ func getFloatValue(metricType string, value interface{}) float64 {
 	}
 
 	return 0
+}
+
+func hash(data []byte, key string) string {
+	if key != "" {
+		h := hmac.New(sha256.New, []byte(key))
+		h.Write(data)
+		return hex.EncodeToString(h.Sum(nil))
+	}
+
+	return ""
 }

@@ -19,7 +19,11 @@ type Handler interface {
 	UpsertMetrics(http.ResponseWriter, *http.Request)
 }
 
-func InitRouter(handler Handler) *chi.Mux {
+type Middleware interface {
+	WithHash(http.Handler) http.Handler
+}
+
+func InitRouter(handler Handler, middleware Middleware) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.WithLogging)
@@ -28,7 +32,7 @@ func InitRouter(handler Handler) *chi.Mux {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetMetrics)
 		r.Get("/ping", handler.PingDB)
-		r.Post("/updates/", handler.UpsertMetrics)
+		r.With(middleware.WithHash).Post("/updates/", handler.UpsertMetrics)
 
 		update.InitUpdateRoutes(r, handler.SetMetric, handler.SetJSONMetric)
 		value.InitValueRoutes(r, handler.GetValueMetric, handler.GetMetric)
