@@ -116,8 +116,8 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
 	for {
 		for k, v := range m.GetMetrics() {
-			delta := getIntValue(metricTypeMap[k], v)
-			value := getFloatValue(metricTypeMap[k], v)
+			delta := GetIntValue(metricTypeMap[k], v)
+			value := GetFloatValue(metricTypeMap[k], v)
 			req := models.Metrics{
 				ID:    k,
 				MType: metricTypeMap[k],
@@ -176,8 +176,8 @@ func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 	var metricsBatch []models.Metrics
 
 	for k, v := range m.GetMetrics() {
-		delta := getIntValue(metricTypeMap[k], v)
-		value := getFloatValue(metricTypeMap[k], v)
+		delta := GetIntValue(metricTypeMap[k], v)
+		value := GetFloatValue(metricTypeMap[k], v)
 		metric := models.Metrics{
 			ID:    k,
 			MType: metricTypeMap[k],
@@ -249,7 +249,7 @@ func getUpdatesURL(host string) string {
 	return sb.String()
 }
 
-func getIntValue(metricType string, value interface{}) int64 {
+func GetIntValue(metricType string, value interface{}) int64 {
 	if metricType == models.CounterType {
 		v, ok := value.(models.Counter)
 		if ok {
@@ -260,7 +260,7 @@ func getIntValue(metricType string, value interface{}) int64 {
 	return 0
 }
 
-func getFloatValue(metricType string, value interface{}) float64 {
+func GetFloatValue(metricType string, value interface{}) float64 {
 	if metricType == models.GaugeType {
 		v, ok := value.(models.Gauge)
 		if ok {

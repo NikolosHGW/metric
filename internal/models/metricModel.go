@@ -91,8 +91,12 @@ func NewMetricCollection() *MetricCollection {
 func (mc *MetricCollection) DecodeMetricsRequest(body io.ReadCloser) error {
 	var tempMetrics []Metrics
 
-	dec := json.NewDecoder(body)
-	if err := dec.Decode(&tempMetrics); err != nil {
+	byteValue, err := io.ReadAll(body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(byteValue, &tempMetrics); err != nil {
 		return err
 	}
 

@@ -13,6 +13,8 @@ import (
 	"github.com/NikolosHGW/metric/internal/server/services"
 	"github.com/NikolosHGW/metric/internal/server/storage"
 	"go.uber.org/zap"
+
+	_ "net/http/pprof"
 )
 
 func main() {
