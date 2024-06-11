@@ -1,3 +1,4 @@
+// Модуль handlers предоставляет все существующие хендлеры для сервиса метрик
 package handlers
 
 import (
@@ -33,6 +34,7 @@ type Handler struct {
 	logger        customLogger
 }
 
+// NewHandler конструктор хендлеров, принимает сервис метрик ms и логгер l с уровнем Info
 func NewHandler(ms metricService, l customLogger) *Handler {
 	return &Handler{
 		metricService: ms,
@@ -40,6 +42,7 @@ func NewHandler(ms metricService, l customLogger) *Handler {
 	}
 }
 
+// SetMetric хендлер, записывает метрики в виде text/plain
 func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
@@ -56,6 +59,7 @@ func (h Handler) SetMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetValueMetric хендлер, отдаёт конкретную метрику по типу и названию метрики
 func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
@@ -72,6 +76,7 @@ func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(metricValue))
 }
 
+// SetJSONMetric хендлер, записывает конкретную метрику через JSON
 func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
@@ -108,6 +113,7 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// GetMetric хендлер, отдаёт конкретную метрику через JSON
 func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	metricModel := models.NewMetricModel()
 	err := metricModel.DecodeMetricRequest(r.Body)
@@ -139,6 +145,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// GetMetrics хендлер, отдаёт все метрики в html
 func (h Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	metrics := h.metricService.GetAllMetrics(r.Context())
 
@@ -171,6 +178,7 @@ func (h Handler) PingDB(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
+// UpsertMetrics хендлер, записывает пачку метрик через JSON
 func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 	metricCollection := models.NewMetricCollection()
 	err := metricCollection.DecodeMetricsRequest(r.Body)

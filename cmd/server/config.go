@@ -31,6 +31,7 @@ func (c *config) parseFlags() {
 	flag.Parse()
 }
 
+// NewConfig конструктор конфига, в котором идёт инициализация флагов и env переменных
 func NewConfig() *config {
 	cfg := new(config)
 
@@ -40,22 +41,27 @@ func NewConfig() *config {
 	return cfg
 }
 
+// GetStoreInterval геттер для интервала хранения
 func (c config) GetStoreInterval() int {
 	return c.StoreInterval
 }
 
+// GetFileStoragePath геттер для пути к хранению
 func (c config) GetFileStoragePath() string {
 	return c.FileStoragePath
 }
 
+// GetRestore геттер для флага нужно ли хранить метрики на диске
 func (c config) GetRestore() bool {
 	return c.Restore
 }
 
+// GetDBConnection геттер для подключения к бд
 func (c config) GetDBConnection() string {
 	return c.DBConnect
 }
 
+// GetKey геттер для секретного ключа для хеширования
 func (c config) GetKey() string {
 	return c.Key
 }
