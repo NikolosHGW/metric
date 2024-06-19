@@ -173,7 +173,7 @@ func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
 
 func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
-	var metricsBatch []models.Metrics
+	metricsBatch := make([]models.Metrics, 0, len(m.GetMetrics()))
 
 	for k, v := range m.GetMetrics() {
 		delta := GetIntValue(metricTypeMap[k], v)
