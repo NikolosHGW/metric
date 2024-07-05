@@ -7,6 +7,7 @@ import (
 	"github.com/NikolosHGW/metric/internal/server/routes/update"
 	"github.com/NikolosHGW/metric/internal/server/routes/value"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 type Handler interface {
@@ -23,7 +24,7 @@ type Middleware interface {
 	WithHash(http.Handler) http.Handler
 }
 
-func InitRouter(handler Handler, middleware Middleware) *chi.Mux {
+func InitRouter(handler Handler, myMiddleware Middleware) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.WithLogging)
@@ -32,11 +33,13 @@ func InitRouter(handler Handler, middleware Middleware) *chi.Mux {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetMetrics)
 		r.Get("/ping", handler.PingDB)
-		r.With(middleware.WithHash).Post("/updates/", handler.UpsertMetrics)
+		r.With(myMiddleware.WithHash).Post("/updates/", handler.UpsertMetrics)
 
 		update.InitUpdateRoutes(r, handler.SetMetric, handler.SetJSONMetric)
 		value.InitValueRoutes(r, handler.GetValueMetric, handler.GetMetric)
 	})
+
+	r.Mount("/debug", middleware.Profiler())
 
 	return r
 }

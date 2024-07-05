@@ -1,9 +1,19 @@
 package request
 
 import (
+	"bytes"
+	"compress/gzip"
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/NikolosHGW/metric/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func Test_getStringValue(t *testing.T) {
@@ -54,4 +64,164 @@ func Test_getResultUrl(t *testing.T) {
 			}
 		})
 	}
+}
+
+type MockClientMetrics struct {
+	mock.Mock
+}
+
+func (m *MockClientMetrics) GetMetrics() map[string]interface{} {
+	args := m.Called()
+	return args.Get(0).(map[string]interface{})
+}
+
+func TestGetMetricTypeMap(t *testing.T) {
+	expectedMap := map[string]string{
+		models.Alloc:           models.GaugeType,
+		models.BuckHashSys:     models.GaugeType,
+		models.Frees:           models.GaugeType,
+		models.GCCPUFraction:   models.GaugeType,
+		models.GCSys:           models.GaugeType,
+		models.HeapAlloc:       models.GaugeType,
+		models.HeapIdle:        models.GaugeType,
+		models.HeapInuse:       models.GaugeType,
+		models.HeapObjects:     models.GaugeType,
+		models.HeapReleased:    models.GaugeType,
+		models.HeapSys:         models.GaugeType,
+		models.LastGC:          models.GaugeType,
+		models.Lookups:         models.GaugeType,
+		models.MCacheInuse:     models.GaugeType,
+		models.MCacheSys:       models.GaugeType,
+		models.MSpanInuse:      models.GaugeType,
+		models.MSpanSys:        models.GaugeType,
+		models.Mallocs:         models.GaugeType,
+		models.NextGC:          models.GaugeType,
+		models.NumForcedGC:     models.GaugeType,
+		models.NumGC:           models.GaugeType,
+		models.OtherSys:        models.GaugeType,
+		models.PauseTotalNs:    models.GaugeType,
+		models.StackInuse:      models.GaugeType,
+		models.StackSys:        models.GaugeType,
+		models.Sys:             models.GaugeType,
+		models.TotalAlloc:      models.GaugeType,
+		models.PollCount:       models.CounterType,
+		models.RandomValue:     models.GaugeType,
+		models.TotalMemory:     models.GaugeType,
+		models.FreeMemory:      models.GaugeType,
+		models.CPUutilization1: models.GaugeType,
+	}
+
+	metricTypeMap := GetMetricTypeMap()
+
+	assert.Equal(t, expectedMap, metricTypeMap, "The metric type map should match the expected values")
+}
+
+func TestSendMetrics(t *testing.T) {
+	mockMetrics := new(MockClientMetrics)
+	mockMetrics.On("GetMetrics").Return(map[string]interface{}{
+		"test-metric": models.Gauge(123.456),
+	})
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/update/test-metric/123.456", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	go func() {
+		SendMetrics(ctx, mockMetrics, 1, testServer.URL[7:])
+	}()
+
+	<-ctx.Done()
+
+	mockMetrics.AssertExpectations(t)
+
+	assert.Equal(t, context.DeadlineExceeded, ctx.Err())
+}
+
+func TestSendJSONMetrics(t *testing.T) {
+	mockMetrics := new(MockClientMetrics)
+	mockMetrics.On("GetMetrics").Return(map[string]interface{}{
+		"test-metric": models.Gauge(123.456),
+	})
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/update", r.URL.Path)
+
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+
+		reader, err := gzip.NewReader(r.Body)
+		assert.NoError(t, err)
+		defer reader.Close()
+
+		body, err := io.ReadAll(reader)
+		assert.NoError(t, err)
+
+		var metric models.Metrics
+		err = json.Unmarshal(body, &metric)
+		assert.NoError(t, err)
+		assert.Equal(t, "test-metric", metric.ID)
+		assert.Equal(t, models.GaugeType, metric.MType)
+		assert.NotNil(t, metric.Value)
+		assert.Equal(t, 123.456, *metric.Value)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	go SendJSONMetrics(ctx, mockMetrics, 1, testServer.URL[7:], "test-key")
+
+	<-ctx.Done()
+
+	mockMetrics.AssertExpectations(t)
+
+	assert.Equal(t, context.DeadlineExceeded, ctx.Err())
+}
+
+func TestSendBatchJSONMetrics(t *testing.T) {
+	mockMetrics := new(MockClientMetrics)
+
+	mockMetrics.On("GetMetrics").Return(map[string]interface{}{
+		"testMetric": models.Gauge(42),
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		assert.Equal(t, "/updates/", req.URL.String())
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		assert.Equal(t, "gzip", req.Header.Get("Content-Encoding"))
+		assert.Equal(t, "gzip", req.Header.Get("Accept-Encoding"))
+
+		body, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+
+		gr, err := gzip.NewReader(bytes.NewBuffer(body))
+		assert.NoError(t, err)
+		defer gr.Close()
+
+		decompressedBody, err := io.ReadAll(gr)
+		assert.NoError(t, err)
+
+		var metrics []models.Metrics
+		err = json.Unmarshal(decompressedBody, &metrics)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "testMetric", metrics[0].ID)
+		assert.Equal(t, models.GaugeType, metrics[0].MType)
+		assert.NotNil(t, metrics[0].Value)
+		assert.Equal(t, float64(42), *metrics[0].Value)
+
+		rw.Write([]byte(`OK`))
+	}))
+	defer server.Close()
+
+	SendBatchJSONMetrics(mockMetrics, server.URL, "testKey")
+
+	mockMetrics.AssertExpectations(t)
 }

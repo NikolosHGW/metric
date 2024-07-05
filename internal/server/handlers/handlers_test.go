@@ -407,3 +407,57 @@ func TestWithGetMetricsHandle(t *testing.T) {
 	assert.Contains(t, string(body), "<title>Список метрик</title>")
 	assert.Contains(t, string(body), "<h1>Список метрик</h1>")
 }
+
+func TestHandler_UpsertMetrics(t *testing.T) {
+	strg := storage.NewMemStorage()
+	metricService := services.NewMetricService(strg)
+
+	handler := NewHandler(metricService, &mockLogger{})
+	server := httptest.NewServer(http.HandlerFunc(handler.UpsertMetrics))
+	defer server.Close()
+
+	gaugeValue := f(42.1)
+	counterValue := i(10)
+
+	testCases := []struct {
+		name     string
+		request  []models.Metrics
+		expected []models.Metrics
+		status   int
+	}{
+		{
+			name: "положительный тест: добавить пачку метрик",
+			request: []models.Metrics{
+				{ID: "foo", MType: models.GaugeType, Value: gaugeValue},
+				{ID: "bar", MType: models.CounterType, Delta: counterValue},
+			},
+			expected: []models.Metrics{
+				{ID: "foo", MType: models.GaugeType, Value: gaugeValue},
+				{ID: "bar", MType: models.CounterType, Delta: counterValue},
+			},
+			status: http.StatusOK,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reqBody, err := json.Marshal(tc.request)
+			assert.NoError(t, err)
+
+			req, err := http.NewRequest(http.MethodPost, server.URL, bytes.NewReader(reqBody))
+			assert.NoError(t, err)
+
+			resp, err := http.DefaultClient.Do(req)
+			assert.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.status, resp.StatusCode)
+
+			var actual []models.Metrics
+			err = json.NewDecoder(resp.Body).Decode(&actual)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}

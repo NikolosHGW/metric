@@ -3,6 +3,7 @@ package request
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -17,12 +18,7 @@ import (
 )
 
 type ClientMetrics interface {
-	IncPollCount()
-	UpdateRandomValue()
-	RefreshMetrics()
 	GetMetrics() map[string]interface{}
-	LockMutex()
-	UnlockMutex()
 }
 
 func GetMetricTypeMap() map[string]string {
@@ -62,21 +58,27 @@ func GetMetricTypeMap() map[string]string {
 	}
 }
 
-func SendMetrics(m ClientMetrics, reportInterval int, host string) {
+func SendMetrics(ctx context.Context, m ClientMetrics, reportInterval int, host string) {
 	metricTypeMap := GetMetricTypeMap()
+	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
+	defer ticker.Stop()
+
 	for {
-		for k, v := range m.GetMetrics() {
-			result := getStringValue(v)
-			adrs := getResultURL(host, metricTypeMap[k], k, result)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			for k, v := range m.GetMetrics() {
+				result := getStringValue(v)
+				adrs := getResultURL(host, metricTypeMap[k], k, result)
 
-			resp, err := http.Post(adrs, "text/plain", nil)
-			if err != nil {
-				continue
+				resp, err := http.Post(adrs, "text/plain", nil)
+				if err != nil {
+					continue
+				}
+				resp.Body.Close()
 			}
-			resp.Body.Close()
 		}
-
-		time.Sleep(time.Duration(reportInterval) * time.Second)
 	}
 }
 
@@ -112,72 +114,78 @@ func getResultURL(host, metricType, metricName, metricValue string) string {
 	return sb.String()
 }
 
-func SendJSONMetrics(m ClientMetrics, reportInterval int, host, key string) {
+func SendJSONMetrics(ctx context.Context, m ClientMetrics, reportInterval int, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
+	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
+	defer ticker.Stop()
+
 	for {
-		for k, v := range m.GetMetrics() {
-			delta := getIntValue(metricTypeMap[k], v)
-			value := getFloatValue(metricTypeMap[k], v)
-			req := models.Metrics{
-				ID:    k,
-				MType: metricTypeMap[k],
-				Delta: &delta,
-				Value: &value,
-			}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			for k, v := range m.GetMetrics() {
+				delta := GetIntValue(metricTypeMap[k], v)
+				value := GetFloatValue(metricTypeMap[k], v)
+				req := models.Metrics{
+					ID:    k,
+					MType: metricTypeMap[k],
+					Delta: &delta,
+					Value: &value,
+				}
 
-			data, err := json.Marshal(req)
-			if err != nil {
-				log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
-				continue
-			}
+				data, err := json.Marshal(req)
+				if err != nil {
+					log.Println("metric/internal/client/util/util.go SendMetrics cannot Marshal", err)
+					continue
+				}
 
-			hash := hash(data, key)
+				hash := hash(data, key)
 
-			buf := bytes.NewBuffer(nil)
-			zb := gzip.NewWriter(buf)
-			_, gzipErr := zb.Write(data)
-			if gzipErr != nil {
-				log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip write", gzipErr)
-				continue
-			}
-			err = zb.Close()
-			if err != nil {
-				log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip cloze", err)
-				continue
-			}
+				buf := bytes.NewBuffer(nil)
+				zb := gzip.NewWriter(buf)
+				_, gzipErr := zb.Write(data)
+				if gzipErr != nil {
+					log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip write", gzipErr)
+					continue
+				}
+				err = zb.Close()
+				if err != nil {
+					log.Println("metric/internal/client/util/util.go SendMetrics cannot gzip cloze", err)
+					continue
+				}
 
-			nr, err := http.NewRequest(http.MethodPost, getURL(host), buf)
-			if err != nil {
-				log.Println("metric/internal/client/util/util.go SendMetrics cannot create NewRequest", err)
-				continue
-			}
-			nr.Header.Set("Content-Type", "application/json")
-			nr.Header.Set("Content-Encoding", "gzip")
-			nr.Header.Set("Accept-Encoding", "gzip")
-			if hash != "" {
-				nr.Header.Set("HashSHA256", hash)
-			}
-			resp, err := http.DefaultClient.Do(nr)
+				nr, err := http.NewRequest(http.MethodPost, getURL(host), buf)
+				if err != nil {
+					log.Println("metric/internal/client/util/util.go SendMetrics cannot create NewRequest", err)
+					continue
+				}
+				nr.Header.Set("Content-Type", "application/json")
+				nr.Header.Set("Content-Encoding", "gzip")
+				nr.Header.Set("Accept-Encoding", "gzip")
+				if hash != "" {
+					nr.Header.Set("HashSHA256", hash)
+				}
+				resp, err := http.DefaultClient.Do(nr)
 
-			if err != nil {
-				log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
-				continue
+				if err != nil {
+					log.Println("metric/internal/client/util/util.go SendMetrics cannot Post", err)
+					continue
+				}
+				log.Println("metric/internal/client/util/util.go SendMetrics post status", resp.Status)
+				resp.Body.Close()
 			}
-			log.Println("metric/internal/client/util/util.go SendMetrics post status", resp.Status)
-			resp.Body.Close()
 		}
-
-		time.Sleep(time.Duration(reportInterval) * time.Second)
 	}
 }
 
 func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 	metricTypeMap := GetMetricTypeMap()
-	var metricsBatch []models.Metrics
+	metricsBatch := make([]models.Metrics, 0, len(m.GetMetrics()))
 
 	for k, v := range m.GetMetrics() {
-		delta := getIntValue(metricTypeMap[k], v)
-		value := getFloatValue(metricTypeMap[k], v)
+		delta := GetIntValue(metricTypeMap[k], v)
+		value := GetFloatValue(metricTypeMap[k], v)
 		metric := models.Metrics{
 			ID:    k,
 			MType: metricTypeMap[k],
@@ -249,7 +257,7 @@ func getUpdatesURL(host string) string {
 	return sb.String()
 }
 
-func getIntValue(metricType string, value interface{}) int64 {
+func GetIntValue(metricType string, value interface{}) int64 {
 	if metricType == models.CounterType {
 		v, ok := value.(models.Counter)
 		if ok {
@@ -260,7 +268,7 @@ func getIntValue(metricType string, value interface{}) int64 {
 	return 0
 }
 
-func getFloatValue(metricType string, value interface{}) float64 {
+func GetFloatValue(metricType string, value interface{}) float64 {
 	if metricType == models.GaugeType {
 		v, ok := value.(models.Gauge)
 		if ok {
