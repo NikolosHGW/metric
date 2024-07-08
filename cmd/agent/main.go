@@ -1,10 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/NikolosHGW/metric/internal/client/metrics"
 	"github.com/NikolosHGW/metric/internal/client/request"
+)
+
+const defaultTagValue = "N/A"
+
+var (
+	buildVersion = defaultTagValue
+	buildDate    = defaultTagValue
+	buildCommit  = defaultTagValue
 )
 
 func main() {
@@ -36,6 +45,12 @@ func main() {
 			}
 		}()
 	}
+
+	fmt.Println(
+		"Build version: ", buildVersion, "\n",
+		"Build date: ", buildDate, "\n",
+		"Build commit: ", buildCommit,
+	)
 
 	select {}
 }
