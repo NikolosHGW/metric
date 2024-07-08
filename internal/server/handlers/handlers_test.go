@@ -96,9 +96,9 @@ func TestHandler_GetMetric(t *testing.T) {
 	tests := []struct {
 		name           string
 		requestBody    string
-		expectedStatus int
 		expectedHeader string
 		expectedBody   string
+		expectedStatus int
 	}{
 		{
 			name:           "отрицательный тест: невалидный JSON",
@@ -126,14 +126,14 @@ func TestHandler_GetMetric(t *testing.T) {
 			requestBody:    `{"id": "cpu", "type": "gauge"}`,
 			expectedStatus: http.StatusOK,
 			expectedHeader: "application/json",
-			expectedBody:   `{"id":"cpu","type":"gauge","value":0.5}`,
+			expectedBody:   `{"value":0.5,"id":"cpu","type":"gauge"}`,
 		},
 		{
 			name:           "положительный тест: получение существующей метрики counter",
 			requestBody:    `{"id": "memory", "type": "counter"}`,
 			expectedStatus: http.StatusOK,
 			expectedHeader: "application/json",
-			expectedBody:   `{"id":"memory","type":"counter","delta":10}`,
+			expectedBody:   `{"delta":10,"id":"memory","type":"counter"}`,
 		},
 	}
 
@@ -203,8 +203,8 @@ func (sm storageMock) UpsertMetrics(ctx context.Context, mc models.MetricCollect
 
 func TestWithSetMetricHandle(t *testing.T) {
 	type want struct {
-		code         int
 		contentTypes []string
+		code         int
 	}
 
 	strg := storageMock{}
@@ -265,8 +265,8 @@ func TestWithSetMetricHandle2(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code         int
 		contentTypes []string
+		code         int
 	}
 
 	tests := []struct {
@@ -326,8 +326,8 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 		name       string
 		metricType string
 		metricName string
-		wantStatus int
 		wantBody   string
+		wantStatus int
 	}{
 		{
 			name:       "положительный тест для метрики типа gauge",

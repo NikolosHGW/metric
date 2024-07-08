@@ -94,14 +94,14 @@ func TestMemStorage_GetGaugeMetric(t *testing.T) {
 	ms.SetGaugeMetric(context.Background(), "bar", 100.01)
 
 	testCases := []struct {
-		name       string
-		metricName string
-		expected   models.Gauge
 		err        error
+		metricName string
+		name       string
+		expected   models.Gauge
 	}{
-		{"положительный тест: достать существующую метрику foo", "foo", 42.1, nil},
-		{"положительный тест: достать существующую метрику bar", "bar", 100.01, nil},
-		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("gauge metric baz not found")},
+		{name: "положительный тест: достать существующую метрику foo", metricName: "foo", expected: 42.1, err: nil},
+		{name: "положительный тест: достать существующую метрику bar", metricName: "bar", expected: 100.01, err: nil},
+		{name: "отрицательный тест: достать несуществующую метрику baz", metricName: "baz", expected: 0, err: errors.New("gauge metric baz not found")},
 	}
 
 	for _, tc := range testCases {
@@ -119,14 +119,14 @@ func TestMemStorage_GetCounterMetric(t *testing.T) {
 	ms.SetCounterMetric(context.Background(), "bar", 100)
 
 	testCases := []struct {
-		name       string
-		metricName string
-		expected   models.Counter
 		err        error
+		metricName string
+		name       string
+		expected   models.Counter
 	}{
-		{"положительный тест: достать существующую метрику foo", "foo", 42, nil},
-		{"положительный тест: достать существующую метрику bar", "bar", 100, nil},
-		{"отрицательный тест: достать несуществующую метрику baz", "baz", 0, errors.New("counter metric baz not found")},
+		{name: "положительный тест: достать существующую метрику foo", metricName: "foo", expected: 42, err: nil},
+		{name: "положительный тест: достать существующую метрику bar", metricName: "bar", expected: 100, err: nil},
+		{name: "отрицательный тест: достать несуществующую метрику baz", metricName: "baz", expected: 0, err: errors.New("counter metric baz not found")},
 	}
 
 	for _, tc := range testCases {
@@ -192,8 +192,8 @@ func TestMemStorage_GetAllMetrics(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		input    []data
 		expected []string
+		input    []data
 	}{
 		{
 			name:     "положительный тест: с наполненным сторэджом",

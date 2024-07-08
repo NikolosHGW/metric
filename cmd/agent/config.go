@@ -7,10 +7,10 @@ import (
 )
 
 type config struct {
-	PollInterval   int    `env:"POLL_INTERVAL"`
-	ReportInterval int    `env:"REPORT_INTERVAL"`
 	Address        string `env:"ADDRESS"`
 	Key            string `env:"KEY"`
+	PollInterval   int    `env:"POLL_INTERVAL"`
+	ReportInterval int    `env:"REPORT_INTERVAL"`
 	RateLimit      int    `end:"RATE_LIMIT"`
 }
 
