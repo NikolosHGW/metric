@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	agentConfig "github.com/NikolosHGW/metric/internal/client/config"
+	"github.com/NikolosHGW/metric/internal/crypto"
+	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/logger"
@@ -32,10 +35,14 @@ func main() {
 }
 
 func run() error {
-	config := NewConfig()
+	config := config.NewConfig()
 
 	if err := logger.Initialize(config.LogLevel); err != nil {
 		return err
+	}
+
+	if config.GetCryptoKeyPath() != "" {
+		crypto.GenerateCrypto(logger.Log, config.GetCryptoKeyPath(), agentConfig.NewConfig().GetCryptoKeyPath())
 	}
 
 	database, err := db.InitDB(config.GetDBConnection())

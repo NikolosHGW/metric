@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"flag"
@@ -12,6 +12,7 @@ type config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DBConnect       string `env:"DATABASE_DSN"`
 	Key             string `env:"KEY"`
+	CryptoKey       string `env:"CRYPTO_KEY"`
 	StoreInterval   int    `env:"STORE_INTERVAL"`
 	Restore         bool   `env:"RESTORE"`
 }
@@ -28,6 +29,7 @@ func (c *config) parseFlags() {
 	flag.BoolVar(&c.Restore, "r", true, "need load from file")
 	flag.StringVar(&c.DBConnect, "d", "user=nikolos password=abc123 dbname=metric sslmode=disable", "data source name for connection")
 	flag.StringVar(&c.Key, "k", "", "secret key for hash")
+	flag.StringVar(&c.CryptoKey, "crypto-key", "", "path to private crypto key")
 	flag.Parse()
 }
 
@@ -64,4 +66,9 @@ func (c config) GetDBConnection() string {
 // GetKey геттер для секретного ключа для хеширования
 func (c config) GetKey() string {
 	return c.Key
+}
+
+// GetCryptoKeyPath геттер для пути к приватному ключу шифрования
+func (c config) GetCryptoKeyPath() string {
+	return c.CryptoKey
 }

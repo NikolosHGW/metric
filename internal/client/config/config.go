@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"flag"
@@ -9,6 +9,7 @@ import (
 type config struct {
 	Address        string `env:"ADDRESS"`
 	Key            string `env:"KEY"`
+	CryptoKey      string `env:"CRYPTO_KEY"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	RateLimit      int    `end:"RATE_LIMIT"`
@@ -38,12 +39,17 @@ func (c *config) InitEnv() {
 	env.Parse(c)
 }
 
+func (c config) GetCryptoKeyPath() string {
+	return c.CryptoKey
+}
+
 func (c *config) parseFlags() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "net address host:port")
 	flag.IntVar(&c.ReportInterval, "r", 10, "report seconds interval")
 	flag.IntVar(&c.PollInterval, "p", 2, "poll seconds interval")
 	flag.StringVar(&c.Key, "k", "", "secret key for hash")
 	flag.IntVar(&c.RateLimit, "l", 10, "Rate limit for outgoing requests")
+	flag.StringVar(&c.CryptoKey, "crypto-key", "", "path to public crypto key")
 
 	flag.Parse()
 }
