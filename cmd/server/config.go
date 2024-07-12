@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 
 	"github.com/caarlos0/env"
 )
@@ -17,7 +18,10 @@ type config struct {
 }
 
 func (c *config) InitEnv() {
-	env.Parse(c)
+	err := env.Parse(c)
+	if err != nil {
+		log.Println("err when parse env")
+	}
 }
 
 func (c *config) parseFlags() {
