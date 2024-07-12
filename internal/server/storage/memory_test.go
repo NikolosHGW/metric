@@ -17,7 +17,10 @@ func TestMemStorage_SetMetric(t *testing.T) {
 		Value: &fooValue,
 	}
 
-	ms.SetMetric(context.Background(), mockModel)
+	err := ms.SetMetric(context.Background(), mockModel)
+	if err != nil {
+		t.Errorf("failed to SetMetric: %v", err)
+	}
 
 	metric, exist := ms.metrics["foo"]
 	assert.True(t, exist, "метрика не найдена в хранилище")
@@ -90,8 +93,14 @@ func TestMemStorage_GetMetric(t *testing.T) {
 
 func TestMemStorage_GetGaugeMetric(t *testing.T) {
 	ms := NewMemStorage()
-	ms.SetGaugeMetric(context.Background(), "foo", 42.1)
-	ms.SetGaugeMetric(context.Background(), "bar", 100.01)
+	err := ms.SetGaugeMetric(context.Background(), "foo", 42.1)
+	if err != nil {
+		t.Errorf("failed to SetGaugeMetric: %v", err)
+	}
+	err = ms.SetGaugeMetric(context.Background(), "bar", 100.01)
+	if err != nil {
+		t.Errorf("2 failed to SetGaugeMetric: %v", err)
+	}
 
 	testCases := []struct {
 		err        error
@@ -115,8 +124,14 @@ func TestMemStorage_GetGaugeMetric(t *testing.T) {
 
 func TestMemStorage_GetCounterMetric(t *testing.T) {
 	ms := NewMemStorage()
-	ms.SetCounterMetric(context.Background(), "foo", 42)
-	ms.SetCounterMetric(context.Background(), "bar", 100)
+	err := ms.SetCounterMetric(context.Background(), "foo", 42)
+	if err != nil {
+		t.Errorf("failed to SetCounterMetric: %v", err)
+	}
+	err = ms.SetCounterMetric(context.Background(), "bar", 100)
+	if err != nil {
+		t.Errorf("2 failed to SetCounterMetric: %v", err)
+	}
 
 	testCases := []struct {
 		err        error
@@ -153,7 +168,10 @@ func TestMemStorage_SetGaugeMetric(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ms.SetGaugeMetric(context.Background(), tc.metricName, tc.value)
+			err := ms.SetGaugeMetric(context.Background(), tc.metricName, tc.value)
+			if err != nil {
+				t.Errorf("failed to SetGaugeMetric: %v", err)
+			}
 			actual, err := ms.GetGaugeMetric(context.Background(), tc.metricName)
 			assert.Equal(t, tc.value, actual)
 			assert.Nil(t, err)
@@ -176,7 +194,10 @@ func TestMemStorage_SetCounterMetric(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ms.SetCounterMetric(context.Background(), tc.metricName, tc.value)
+			err := ms.SetCounterMetric(context.Background(), tc.metricName, tc.value)
+			if err != nil {
+				t.Errorf("failed to SetCounterMetric: %v", err)
+			}
 			actual, err := ms.GetCounterMetric(context.Background(), tc.metricName)
 			assert.Equal(t, tc.value, actual)
 			assert.Nil(t, err)
@@ -211,7 +232,10 @@ func TestMemStorage_GetAllMetrics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ms := NewMemStorage()
 			for _, data := range tc.input {
-				ms.SetGaugeMetric(context.Background(), data.metricName, data.metricValue)
+				err := ms.SetGaugeMetric(context.Background(), data.metricName, data.metricValue)
+				if err != nil {
+					t.Errorf("failed to SetGaugeMetric: %v", err)
+				}
 			}
 			actual := ms.GetAllMetrics(context.Background())
 			assert.Equal(t, tc.expected, actual)

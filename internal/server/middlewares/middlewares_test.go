@@ -49,7 +49,12 @@ func TestCheckMetricNameMiddleware(t *testing.T) {
 			CheckMetricNameMiddleware(getFakeHandler()).ServeHTTP(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				err := res.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 		})
@@ -105,7 +110,12 @@ func TestCheckTypeAndValueMiddleware(t *testing.T) {
 				CheckTypeAndValueMiddleware(getFakeHandler()).ServeHTTP(w, request)
 
 				res := w.Result()
-				defer res.Body.Close()
+				defer func() {
+					err := res.Body.Close()
+					if err != nil {
+						t.Errorf("failed body close: %v", err)
+					}
+				}()
 
 				assert.Equal(t, test.want.code, res.StatusCode)
 			})
