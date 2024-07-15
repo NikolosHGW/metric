@@ -73,7 +73,10 @@ func (h Handler) GetValueMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Add("Content-Type", "charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(metricValue))
+	_, err = w.Write([]byte(metricValue))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // SetJSONMetric хендлер, записывает конкретную метрику через JSON
@@ -85,7 +88,12 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		err := r.Body.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}()
 
 	err = h.metricService.SetJSONMetric(r.Context(), *metricModel)
 	if err != nil {
@@ -110,7 +118,10 @@ func (h Handler) SetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // GetMetric хендлер, отдаёт конкретную метрику через JSON
@@ -123,7 +134,12 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		err := r.Body.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}()
 
 	metric, err := h.metricService.GetMetricByName(r.Context(), metricModel.ID)
 	if err != nil {
@@ -142,7 +158,10 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // GetMetrics хендлер, отдаёт все метрики в html
@@ -188,7 +207,12 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		err := r.Body.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}()
 
 	metrics, err := h.metricService.UpsertMetrics(r.Context(), *metricCollection)
 	if err != nil {
@@ -206,5 +230,8 @@ func (h Handler) UpsertMetrics(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	_, err = w.Write(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

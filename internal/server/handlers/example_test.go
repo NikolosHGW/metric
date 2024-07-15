@@ -138,7 +138,7 @@ func ExampleHandler_GetMetric() {
 	fmt.Println(rr.Body.String())
 
 	// Output:
-	// {"id":"metricName","type":"gauge","value":123}
+	// {"value":123,"id":"metricName","type":"gauge"}
 }
 
 func ExampleHandler_GetMetrics() {

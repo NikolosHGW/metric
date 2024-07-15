@@ -76,7 +76,11 @@ func SendMetrics(ctx context.Context, m ClientMetrics, reportInterval int, host 
 				if err != nil {
 					continue
 				}
-				resp.Body.Close()
+				err = resp.Body.Close()
+				if err != nil {
+					log.Println("can not close body SendMetrics", err)
+					continue
+				}
 			}
 		}
 	}
@@ -173,7 +177,11 @@ func SendJSONMetrics(ctx context.Context, m ClientMetrics, reportInterval int, h
 					continue
 				}
 				log.Println("metric/internal/client/util/util.go SendMetrics post status", resp.Status)
-				resp.Body.Close()
+				err = resp.Body.Close()
+				if err != nil {
+					log.Println("can not close body SendJSONMetrics", err)
+					continue
+				}
 			}
 		}
 	}
@@ -234,7 +242,10 @@ func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 		return
 	}
 	log.Println("metric/internal/client/util/util.go SendBatchMetrics post status", resp.Status)
-	resp.Body.Close()
+	err = resp.Body.Close()
+	if err != nil {
+		log.Println("can not close body SendBatchJSONMetrics", err)
+	}
 }
 
 func getURL(host string) string {

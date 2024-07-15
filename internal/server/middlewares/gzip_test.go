@@ -44,7 +44,12 @@ func TestWithGzip(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func() {
+			err := resp.Body.Close()
+			if err != nil {
+				t.Errorf("failed body close: %v", err)
+			}
+		}()
 
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
@@ -68,7 +73,12 @@ func TestWithGzip(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func() {
+			err := resp.Body.Close()
+			if err != nil {
+				t.Errorf("failed body close: %v", err)
+			}
+		}()
 
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
@@ -88,11 +98,21 @@ func TestWithGzip(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func() {
+			err := resp.Body.Close()
+			if err != nil {
+				t.Errorf("failed body close: %v", err)
+			}
+		}()
 
 		gz, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
-		defer gz.Close()
+		defer func() {
+			err := gz.Close()
+			if err != nil {
+				t.Errorf("failed gzip close: %v", err)
+			}
+		}()
 
 		b, err := io.ReadAll(gz)
 		require.NoError(t, err)
@@ -117,11 +137,21 @@ func TestWithGzip(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func() {
+			err := resp.Body.Close()
+			if err != nil {
+				t.Errorf("failed body close: %v", err)
+			}
+		}()
 
 		gz, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
-		defer gz.Close()
+		defer func() {
+			err := gz.Close()
+			if err != nil {
+				t.Errorf("failed gzip close: %v", err)
+			}
+		}()
 
 		b, err := io.ReadAll(gz)
 		require.NoError(t, err)

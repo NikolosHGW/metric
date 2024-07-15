@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 
 	"github.com/caarlos0/env"
 )
@@ -9,15 +10,18 @@ import (
 type config struct {
 	Address         string `env:"ADDRESS"`
 	LogLevel        string `env:"LOG_LEVEL"`
-	StoreInterval   int    `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
 	DBConnect       string `env:"DATABASE_DSN"`
 	Key             string `env:"KEY"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func (c *config) InitEnv() {
-	env.Parse(c)
+	err := env.Parse(c)
+	if err != nil {
+		log.Println("err when parse env")
+	}
 }
 
 func (c *config) parseFlags() {

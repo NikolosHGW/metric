@@ -49,7 +49,12 @@ func TestCheckMetricNameMiddleware(t *testing.T) {
 			CheckMetricNameMiddleware(getFakeHandler()).ServeHTTP(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				err := res.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 		})
@@ -105,7 +110,12 @@ func TestCheckTypeAndValueMiddleware(t *testing.T) {
 				CheckTypeAndValueMiddleware(getFakeHandler()).ServeHTTP(w, request)
 
 				res := w.Result()
-				defer res.Body.Close()
+				defer func() {
+					err := res.Body.Close()
+					if err != nil {
+						t.Errorf("failed body close: %v", err)
+					}
+				}()
 
 				assert.Equal(t, test.want.code, res.StatusCode)
 			})
@@ -167,15 +177,15 @@ func TestSliceStrings(t *testing.T) {
 	testCases := []struct {
 		name     string
 		strings  []string
-		i        int
 		expected []string
+		i        int
 	}{
-		{"корректный случай #1", []string{"a", "b", "c"}, 1, []string{"a", "c"}},
-		{"корректный случай #2", []string{"a", "b", "c"}, 0, []string{"b", "c"}},
-		{"корректный случай #3", []string{"a", "b", "c"}, 2, []string{"a", "b"}},
-		{"индекс за пределами слайса", []string{"a", "b", "c"}, 3, []string{"a", "b", "c"}},
-		{"отрицательный индекс", []string{"a", "b", "c"}, -1, []string{"a", "b", "c"}},
-		{"пустой слайс", []string{}, 0, []string{}},
+		{name: "корректный случай #1", strings: []string{"a", "b", "c"}, i: 1, expected: []string{"a", "c"}},
+		{name: "корректный случай #2", strings: []string{"a", "b", "c"}, i: 0, expected: []string{"b", "c"}},
+		{name: "корректный случай #3", strings: []string{"a", "b", "c"}, i: 2, expected: []string{"a", "b"}},
+		{name: "индекс за пределами слайса", strings: []string{"a", "b", "c"}, i: 3, expected: []string{"a", "b", "c"}},
+		{name: "отрицательный индекс", strings: []string{"a", "b", "c"}, i: -1, expected: []string{"a", "b", "c"}},
+		{name: "пустой слайс", strings: []string{}, i: 0, expected: []string{}},
 	}
 
 	for _, tc := range testCases {

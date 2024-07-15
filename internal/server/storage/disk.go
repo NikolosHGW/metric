@@ -92,7 +92,12 @@ func (ds DiskStorage) WriteToDisk() {
 	if err != nil {
 		ds.log.Info("cannot open file", zap.Error(err))
 	}
-	defer Producer.Close()
+	defer func() {
+		err := Producer.Close()
+		if err != nil {
+			ds.log.Info("cannot close Producer", zap.Error(err))
+		}
+	}()
 
 	for _, metric := range ds.strg.GetMetricsModels(context.Background()) {
 		if err := Producer.WriteMetric(&metric); err != nil {
@@ -106,7 +111,12 @@ func (ds DiskStorage) WriteToStorage() {
 	if err != nil {
 		ds.log.Info("cannot open file", zap.Error(err))
 	}
-	defer Consumer.Close()
+	defer func() {
+		err := Consumer.Close()
+		if err != nil {
+			ds.log.Info("cannot close Consumer", zap.Error(err))
+		}
+	}()
 
 	for {
 		metric, err := Consumer.ReadMetric()
@@ -114,7 +124,11 @@ func (ds DiskStorage) WriteToStorage() {
 			ds.log.Info("cannot decode", zap.Error(err))
 			break
 		}
-		ds.strg.SetMetric(context.Background(), *metric)
+		err = ds.strg.SetMetric(context.Background(), *metric)
+		if err != nil {
+			ds.log.Info("cannot SetMetric", zap.Error(err))
+			break
+		}
 	}
 }
 

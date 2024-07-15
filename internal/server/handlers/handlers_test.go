@@ -73,7 +73,12 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 
 			resp, err := http.DefaultClient.Do(req)
 			assert.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() {
+				err := resp.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			assert.Equal(t, tc.status, resp.StatusCode)
 
@@ -89,16 +94,22 @@ func TestHandler_SetJSONMetric(t *testing.T) {
 func TestHandler_GetMetric(t *testing.T) {
 	strg := storage.NewMemStorage()
 	metricService := services.NewMetricService(strg)
-	metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
-	metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
+	err := metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "cpu", MType: "gauge", Value: f(0.5)})
+	if err != nil {
+		t.Errorf("failed SetJSONMetric: %v", err)
+	}
+	err = metricService.SetJSONMetric(context.Background(), models.Metrics{ID: "memory", MType: "counter", Delta: i(10)})
+	if err != nil {
+		t.Errorf("2 failed SetJSONMetric: %v", err)
+	}
 	h := NewHandler(metricService, &mockLogger{})
 
 	tests := []struct {
 		name           string
 		requestBody    string
-		expectedStatus int
 		expectedHeader string
 		expectedBody   string
+		expectedStatus int
 	}{
 		{
 			name:           "отрицательный тест: невалидный JSON",
@@ -126,14 +137,14 @@ func TestHandler_GetMetric(t *testing.T) {
 			requestBody:    `{"id": "cpu", "type": "gauge"}`,
 			expectedStatus: http.StatusOK,
 			expectedHeader: "application/json",
-			expectedBody:   `{"id":"cpu","type":"gauge","value":0.5}`,
+			expectedBody:   `{"value":0.5,"id":"cpu","type":"gauge"}`,
 		},
 		{
 			name:           "положительный тест: получение существующей метрики counter",
 			requestBody:    `{"id": "memory", "type": "counter"}`,
 			expectedStatus: http.StatusOK,
 			expectedHeader: "application/json",
-			expectedBody:   `{"id":"memory","type":"counter","delta":10}`,
+			expectedBody:   `{"delta":10,"id":"memory","type":"counter"}`,
 		},
 	}
 
@@ -203,8 +214,8 @@ func (sm storageMock) UpsertMetrics(ctx context.Context, mc models.MetricCollect
 
 func TestWithSetMetricHandle(t *testing.T) {
 	type want struct {
-		code         int
 		contentTypes []string
+		code         int
 	}
 
 	strg := storageMock{}
@@ -242,7 +253,12 @@ func TestWithSetMetricHandle(t *testing.T) {
 			handler.SetMetric(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				err := res.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 
@@ -265,8 +281,8 @@ func TestWithSetMetricHandle2(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code         int
 		contentTypes []string
+		code         int
 	}
 
 	tests := []struct {
@@ -299,7 +315,12 @@ func TestWithSetMetricHandle2(t *testing.T) {
 
 			res, err := http.DefaultClient.Do(req)
 			assert.NoError(t, err)
-			defer res.Body.Close()
+			defer func() {
+				err := res.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			assert.Equal(t, tc.want.code, res.StatusCode)
 
@@ -326,8 +347,8 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 		name       string
 		metricType string
 		metricName string
-		wantStatus int
 		wantBody   string
+		wantStatus int
 	}{
 		{
 			name:       "положительный тест для метрики типа gauge",
@@ -366,7 +387,12 @@ func TestWithGetValueMetricHandle(t *testing.T) {
 
 			resp, err := client.Do(req)
 			assert.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() {
+				err := resp.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			body, err := io.ReadAll(resp.Body)
 			assert.NoError(t, err)
@@ -397,7 +423,12 @@ func TestWithGetMetricsHandle(t *testing.T) {
 	resp, err := client.Do(req)
 
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			t.Errorf("failed body close: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
@@ -449,7 +480,12 @@ func TestHandler_UpsertMetrics(t *testing.T) {
 
 			resp, err := http.DefaultClient.Do(req)
 			assert.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() {
+				err := resp.Body.Close()
+				if err != nil {
+					t.Errorf("failed body close: %v", err)
+				}
+			}()
 
 			assert.Equal(t, tc.status, resp.StatusCode)
 

@@ -17,6 +17,14 @@ import (
 	_ "net/http/pprof"
 )
 
+const defaultTagValue = "N/A"
+
+var (
+	buildVersion = defaultTagValue
+	buildDate    = defaultTagValue
+	buildCommit  = defaultTagValue
+)
+
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(fmt.Errorf("server/main run_ListenAndServe: %w", err))
@@ -35,7 +43,12 @@ func run() error {
 		logger.Log.Info("init db", zap.Error(err))
 	}
 	if database != nil {
-		defer database.Close()
+		defer func() {
+			err := database.Close()
+			if err != nil {
+				logger.Log.Info("err close database", zap.Error(err))
+			}
+		}()
 	}
 
 	strg := storage.NewMemStorage()
@@ -53,6 +66,12 @@ func run() error {
 	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
 
 	r := routes.InitRouter(handler, hashMiddleware)
+
+	fmt.Println(
+		"Build version: ", buildVersion, "\n",
+		"Build date: ", buildDate, "\n",
+		"Build commit: ", buildCommit,
+	)
 
 	logger.Log.Info("Running server", zap.String("address", config.Address))
 

@@ -79,12 +79,18 @@ func (ms *MemStorage) SetCounterMetric(_ context.Context, name string, value mod
 
 func (ms *MemStorage) SetMetric(ctx context.Context, m models.Metrics) error {
 	if m.MType == models.CounterType {
-		ms.SetCounterMetric(ctx, m.ID, models.Counter(*m.Delta))
+		err := ms.SetCounterMetric(ctx, m.ID, models.Counter(*m.Delta))
+		if err != nil {
+			return fmt.Errorf("can not SetCounterMetric: %w", err)
+		}
 
 		return nil
 	}
 
-	ms.SetGaugeMetric(ctx, m.ID, models.Gauge(*m.Value))
+	err := ms.SetGaugeMetric(ctx, m.ID, models.Gauge(*m.Value))
+	if err != nil {
+		return fmt.Errorf("can not SetGaugeMetric: %w", err)
+	}
 
 	return nil
 }
@@ -153,7 +159,10 @@ func (ms *MemStorage) GetIsDBConnected() bool {
 
 func (ms *MemStorage) UpsertMetrics(ctx context.Context, metricCollection models.MetricCollection) (models.MetricCollection, error) {
 	for _, m := range metricCollection.Metrics {
-		ms.SetMetric(ctx, m)
+		err := ms.SetMetric(ctx, m)
+		if err != nil {
+			return metricCollection, fmt.Errorf("can not SetMetric: %w", err)
+		}
 	}
 
 	return metricCollection, nil
