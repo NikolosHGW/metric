@@ -108,7 +108,12 @@ func (ds *DBStorage) GetAllMetrics(ctx context.Context) []string {
 		return metricStrings
 	}
 
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			ds.log.Info("cannot close rows GetAllMetrics", zap.Error(err))
+		}
+	}()
 
 	for rows.Next() {
 		var name string
@@ -168,7 +173,13 @@ func (ds *DBStorage) UpsertMetrics(ctx context.Context, metricCollection models.
 			metric.ID, metric.MType, metric.Delta, metric.Value,
 		)
 		if err != nil {
-			tx.Rollback()
+			rollBackErr := tx.Rollback()
+			if rollBackErr != nil {
+				ds.log.Info("cannot rollback UpsertMetrics", zap.Error(rollBackErr))
+			}
+
+			ds.log.Info("cannot UpsertMetrics", zap.Error(err))
+
 			return *models.NewMetricCollection(), err
 		}
 		upsertedMetrics = append(upsertedMetrics, upsertedMetric)

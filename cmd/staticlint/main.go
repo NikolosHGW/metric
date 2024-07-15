@@ -11,6 +11,7 @@ package main
 import (
 	customAnalysis "github.com/NikolosHGW/metric/internal/analysis"
 	"github.com/NikolosHGW/metric/internal/static"
+	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/appends"
@@ -150,6 +151,8 @@ func main() {
 		usesgenerics.Analyzer,
 		// Анализатор, который проверяет, что основная функция не вызывает os.Exit().
 		customAnalysis.Analyzer,
+		// Анализатор, который проверяет, что основная функция не вызывает os.Exit().
+		errcheck.Analyzer,
 	}
 
 	// SE анализаторы из библиотеки staticheck

@@ -5,6 +5,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/NikolosHGW/metric/internal/server/logger"
+	"go.uber.org/zap"
 )
 
 const (
@@ -87,7 +90,12 @@ func WithGzip(next http.Handler) http.Handler {
 			cw := newCompressWriter(w)
 			ow = cw
 
-			defer cw.Close()
+			defer func() {
+				err := cw.Close()
+				if err != nil {
+					logger.Log.Info("err close compressWriter", zap.Error(err))
+				}
+			}()
 		}
 
 		contentEncoding := strings.Join(r.Header.Values("Content-Encoding"), ", ")
@@ -100,7 +108,12 @@ func WithGzip(next http.Handler) http.Handler {
 			}
 
 			r.Body = cr
-			defer cr.Close()
+			defer func() {
+				err := cr.Close()
+				if err != nil {
+					logger.Log.Info("err close compressReader", zap.Error(err))
+				}
+			}()
 		}
 
 		next.ServeHTTP(ow, r)

@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"log"
 
 	"github.com/caarlos0/env"
 )
@@ -36,7 +37,10 @@ func (c config) GetRateLimit() int {
 }
 
 func (c *config) InitEnv() {
-	env.Parse(c)
+	err := env.Parse(c)
+	if err != nil {
+		log.Println("err when parse env")
+	}
 }
 
 func (c config) GetCryptoKeyPath() string {

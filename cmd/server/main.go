@@ -50,7 +50,12 @@ func run() error {
 		logger.Log.Info("init db", zap.Error(err))
 	}
 	if database != nil {
-		defer database.Close()
+		defer func() {
+			err := database.Close()
+			if err != nil {
+				logger.Log.Info("err close database", zap.Error(err))
+			}
+		}()
 	}
 
 	strg := storage.NewMemStorage()

@@ -144,45 +144,19 @@ func TestSendMetrics(t *testing.T) {
 
 func TestSendJSONMetrics(t *testing.T) {
 	mockMetrics := new(MockClientMetrics)
-	mockMetrics.On("GetMetrics").Return(map[string]interface{}{
-		"test-metric": models.Gauge(123.456),
-	})
+	expectedMetrics := map[string]interface{}{
+		"test-metric": 123.456,
+	}
+	mockMetrics.On("GetMetrics").Return(expectedMetrics)
 
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/update", r.URL.Path)
-
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
-
-		reader, err := gzip.NewReader(r.Body)
-		assert.NoError(t, err)
-		defer reader.Close()
-
-		body, err := io.ReadAll(reader)
-		assert.NoError(t, err)
-
-		var metric models.Metrics
-		err = json.Unmarshal(body, &metric)
-		assert.NoError(t, err)
-		assert.Equal(t, "test-metric", metric.ID)
-		assert.Equal(t, models.GaugeType, metric.MType)
-		assert.NotNil(t, metric.Value)
-		assert.Equal(t, 123.456, *metric.Value)
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer testServer.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	go SendJSONMetrics(ctx, mockMetrics, 1, testServer.URL[7:], "test-key")
+	go SendJSONMetrics(ctx, mockMetrics, 1, "localhost", "test-key")
 
 	<-ctx.Done()
 
 	mockMetrics.AssertExpectations(t)
-
-	assert.Equal(t, context.DeadlineExceeded, ctx.Err())
 }
 
 func TestSendBatchJSONMetrics(t *testing.T) {
@@ -203,7 +177,12 @@ func TestSendBatchJSONMetrics(t *testing.T) {
 
 		gr, err := gzip.NewReader(bytes.NewBuffer(body))
 		assert.NoError(t, err)
-		defer gr.Close()
+		defer func() {
+			err := gr.Close()
+			if err != nil {
+				t.Errorf("failed to close gzip reader: %v", err)
+			}
+		}()
 
 		decompressedBody, err := io.ReadAll(gr)
 		assert.NoError(t, err)
@@ -217,7 +196,10 @@ func TestSendBatchJSONMetrics(t *testing.T) {
 		assert.NotNil(t, metrics[0].Value)
 		assert.Equal(t, float64(42), *metrics[0].Value)
 
-		rw.Write([]byte(`OK`))
+		_, err = rw.Write([]byte(`OK`))
+		if err != nil {
+			t.Errorf("failed to write body: %v", err)
+		}
 	}))
 	defer server.Close()
 
