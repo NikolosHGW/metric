@@ -61,7 +61,7 @@ import (
 )
 
 func main() {
-	staticConfig := static.NewStaticConfig()
+	staticConfig := static.NewStaticRulesConfig()
 	staticChecks := []*analysis.Analyzer{
 		// Анализатор, который обнаруживает, если в append есть только одна переменная.
 		appends.Analyzer,

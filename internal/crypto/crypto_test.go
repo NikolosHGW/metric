@@ -23,13 +23,23 @@ func TestGenerateCrypto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file for server private key: %v", err)
 	}
-	defer os.Remove(serverPrivateKeyFile.Name())
+	defer func() {
+		err := os.Remove(serverPrivateKeyFile.Name())
+		if err != nil {
+			t.Fatalf("Failed to remove temp file for server private key: %v", err)
+		}
+	}()
 
 	agentPublicKeyFile, err := os.CreateTemp("", "agent_public_key.pem")
 	if err != nil {
 		t.Fatalf("Failed to create temp file for agent public key: %v", err)
 	}
-	defer os.Remove(agentPublicKeyFile.Name())
+	defer func() {
+		err := os.Remove(agentPublicKeyFile.Name())
+		if err != nil {
+			t.Fatalf("Failed to remove temp file for agent public key: %v", err)
+		}
+	}()
 
 	// Создание фейкового логгера
 	logger := &testLogger{}
