@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"os"
 
 	"go.uber.org/zap"
@@ -62,4 +63,23 @@ func GenerateCrypto(l customLogger, serverPrivateKeyPath, agentPublicKeyPath str
 		return
 	}
 	l.Info("public key saved successfully", zap.String("path", agentPublicKeyPath))
+}
+
+func LoadPrivateKey(path string) (*rsa.PrivateKey, error) {
+	keyData, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(keyData)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		return nil, errors.New("failed to decode PEM block containing private key")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
 }
