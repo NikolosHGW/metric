@@ -42,7 +42,10 @@ func run() error {
 	}
 
 	if config.GetCryptoKeyPath() != "" {
-		crypto.GenerateCrypto(logger.Log, config.GetCryptoKeyPath(), agentConfig.NewConfig().GetCryptoKeyPath())
+		err := crypto.GenerateCrypto(logger.Log, config.GetCryptoKeyPath(), agentConfig.NewConfig().GetCryptoKeyPath())
+		if err != nil {
+			return fmt.Errorf("error with GenerateCrypto: %w", err)
+		}
 	}
 
 	database, err := db.InitDB(config.GetDBConnection())

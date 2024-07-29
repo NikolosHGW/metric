@@ -1,11 +1,13 @@
 package crypto
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +47,10 @@ func TestGenerateCrypto(t *testing.T) {
 
 	logger := &testLogger{}
 
-	GenerateCrypto(logger, serverPrivateKeyFile.Name(), agentPublicKeyFile.Name())
+	err = GenerateCrypto(logger, serverPrivateKeyFile.Name(), agentPublicKeyFile.Name())
+	if err != nil {
+		t.Fatalf("Failed GenerateCrypto: %v", err)
+	}
 
 	for _, log := range logger.logs {
 		cantGenerateKey := log == "cannot generate rsa key"
@@ -94,6 +99,38 @@ func TestGenerateCrypto(t *testing.T) {
 	}
 }
 
+func TestGenerateCrypto_TableDriven(t *testing.T) {
+	tests := []struct {
+		name                 string
+		serverPrivateKeyPath string
+		agentPublicKeyPath   string
+		expectedError        string
+	}{
+		{
+			name:                 "Пустые пути",
+			serverPrivateKeyPath: "",
+			agentPublicKeyPath:   "",
+			expectedError:        "cannot write private key to file",
+		},
+		{
+			name:                 "Только приватный путь",
+			serverPrivateKeyPath: "testfile",
+			agentPublicKeyPath:   "",
+			expectedError:        "cannot write public key to file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger := &testLogger{}
+			err := GenerateCrypto(logger, tt.serverPrivateKeyPath, tt.agentPublicKeyPath)
+			if err == nil || !strings.Contains(err.Error(), tt.expectedError) {
+				t.Fatalf("Expected error containing '%v', got '%v'", tt.expectedError, err)
+			}
+		})
+	}
+}
+
 func TestLoadPrivateKey_Success(t *testing.T) {
 	privateKeyPath := "test_private_key.pem"
 	serverPrivateKeyFile, err := os.CreateTemp("", privateKeyPath)
@@ -107,9 +144,24 @@ func TestLoadPrivateKey_Success(t *testing.T) {
 		}
 	}()
 
+	publicKeyPath := "test_public_key.pem"
+	publicKeyFile, err := os.CreateTemp("", publicKeyPath)
+	if err != nil {
+		t.Fatalf("Failed to create temp file for public key: %v", err)
+	}
+	defer func() {
+		err := os.Remove(publicKeyFile.Name())
+		if err != nil {
+			t.Fatalf("Failed to remove temp file for public key: %v", err)
+		}
+	}()
+
 	logger := &testLogger{}
 
-	GenerateCrypto(logger, serverPrivateKeyFile.Name(), "")
+	err = GenerateCrypto(logger, serverPrivateKeyFile.Name(), publicKeyFile.Name())
+	if err != nil {
+		t.Fatalf("Failed GenerateCrypto: %v", err)
+	}
 
 	privateKey, err := LoadPrivateKey(serverPrivateKeyFile.Name())
 
@@ -164,4 +216,116 @@ func TestLoadPrivateKey_CorruptedFile(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, privateKey)
+}
+
+func TestLoadPublicKey(t *testing.T) {
+	privateKeyPath := "server_private_key.pem"
+	publicKeyPath := "agent_public_key.pem"
+
+	logger := &testLogger{}
+
+	err := GenerateCrypto(logger, privateKeyPath, publicKeyPath)
+	if err != nil {
+		t.Fatalf("Failed to generate keys: %v", err)
+	}
+
+	publicKey, err := LoadPublicKey(publicKeyPath)
+	if err != nil {
+		t.Fatalf("Failed to load public key: %v", err)
+	}
+
+	if publicKey == nil {
+		t.Fatal("Public key is nil")
+	}
+
+	err = os.Remove(privateKeyPath)
+	if err != nil {
+		t.Fatalf("Cannot private remove file: %v", err)
+	}
+	err = os.Remove(publicKeyPath)
+	if err != nil {
+		t.Fatalf("Cannot public remove file: %v", err)
+	}
+}
+
+func TestLoadPublicKey_FileNotFound(t *testing.T) {
+	_, err := LoadPublicKey("non_existent_file.pem")
+	if err == nil {
+		t.Fatal("Expected an error for non-existent file, but got nil")
+	}
+}
+
+func TestLoadPublicKey_InvalidPEM(t *testing.T) {
+	invalidPEMPath := "invalid.pem"
+	err := os.WriteFile(invalidPEMPath, []byte("invalid data"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write invalid PEM file: %v", err)
+	}
+	defer func() {
+		err := os.Remove(invalidPEMPath)
+		if err != nil {
+			t.Fatalf("Failed to remove temp file invalidPEMPath: %v", err)
+		}
+	}()
+
+	_, err = LoadPublicKey(invalidPEMPath)
+	if err == nil {
+		t.Fatal("Expected an error for invalid PEM data, but got nil")
+	}
+}
+
+func TestLoadPublicKey_InvalidKeyType(t *testing.T) {
+	invalidKeyTypePath := "invalid_key_type.pem"
+	block := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: []byte("invalid key data"),
+	}
+	var pemData bytes.Buffer
+	err := pem.Encode(&pemData, block)
+	if err != nil {
+		t.Fatalf("Failed to encode invalid key type: %v", err)
+	}
+	err = os.WriteFile(invalidKeyTypePath, pemData.Bytes(), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write invalid key type file: %v", err)
+	}
+	defer func() {
+		err := os.Remove(invalidKeyTypePath)
+		if err != nil {
+			t.Fatalf("Failed to remove temp file invalidKeyTypePath: %v", err)
+		}
+	}()
+
+	_, err = LoadPublicKey(invalidKeyTypePath)
+	if err == nil {
+		t.Fatal("Expected an error for invalid key type, but got nil")
+	}
+}
+
+func TestLoadPublicKey_InvalidKeyFormat(t *testing.T) {
+	invalidKeyFormatPath := "invalid_key_format.pem"
+	block := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: []byte("invalid key data"),
+	}
+	var pemData bytes.Buffer
+	err := pem.Encode(&pemData, block)
+	if err != nil {
+		t.Fatalf("Failed to encode invalid key format: %v", err)
+	}
+	err = os.WriteFile(invalidKeyFormatPath, pemData.Bytes(), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write invalid key format file: %v", err)
+	}
+	defer func() {
+		err := os.Remove(invalidKeyFormatPath)
+		if err != nil {
+			t.Fatalf("Failed to remove temp file invalidKeyFormatPath: %v", err)
+		}
+	}()
+
+	_, err = LoadPublicKey(invalidKeyFormatPath)
+	if err == nil {
+		t.Fatal("Expected an error for invalid key format, but got nil")
+	}
 }
