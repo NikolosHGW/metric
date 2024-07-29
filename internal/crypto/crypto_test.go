@@ -329,3 +329,67 @@ func TestLoadPublicKey_InvalidKeyFormat(t *testing.T) {
 		t.Fatal("Expected an error for invalid key format, but got nil")
 	}
 }
+
+func TestEncryptData(t *testing.T) {
+	serverPrivateKeyFile, err := os.CreateTemp("", "server_private_key.pem")
+	assert.NoError(t, err)
+	defer func() {
+		err := os.Remove(serverPrivateKeyFile.Name())
+		if err != nil {
+			t.Fatalf("Failed to remove temp file serverPrivateKeyFile: %v", err)
+		}
+	}()
+
+	agentPublicKeyFile, err := os.CreateTemp("", "agent_public_key.pem")
+	assert.NoError(t, err)
+	defer func() {
+		err := os.Remove(agentPublicKeyFile.Name())
+		if err != nil {
+			t.Fatalf("Failed to remove temp file agentPublicKeyFile: %v", err)
+		}
+	}()
+
+	logger := &testLogger{}
+	err = GenerateCrypto(logger, serverPrivateKeyFile.Name(), agentPublicKeyFile.Name())
+	if err != nil {
+		t.Fatalf("Failed GenerateCrypto: %v", err)
+	}
+
+	publicKey, err := LoadPublicKey(agentPublicKeyFile.Name())
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		data    []byte
+		wantErr bool
+	}{
+		{
+			name:    "Валидные данные",
+			data:    []byte("test data"),
+			wantErr: false,
+		},
+		{
+			name:    "Пустые данные",
+			data:    []byte(""),
+			wantErr: false,
+		},
+		{
+			name:    "Большие данные",
+			data:    make([]byte, 1000),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			encryptedData, err := EncryptData(publicKey, tt.data)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, encryptedData)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, encryptedData)
+			}
+		})
+	}
+}
