@@ -57,8 +57,7 @@ func TestDecryptMiddleware_Success(t *testing.T) {
 	}()
 
 	logger := &mockLogger{}
-	middleware, err := NewDecryptMiddleware(privateKeyPath, logger)
-	assert.NoError(t, err)
+	middleware := NewDecryptMiddleware(privateKeyPath, logger)
 
 	message := []byte("hello, world")
 	encryptedMessage := encryptMessage(t, publicKey, message)
@@ -93,8 +92,7 @@ func TestDecryptMiddleware_Failure(t *testing.T) {
 	}()
 
 	logger := &mockLogger{}
-	middleware, err := NewDecryptMiddleware(privateKeyPath, logger)
-	assert.NoError(t, err)
+	middleware := NewDecryptMiddleware(privateKeyPath, logger)
 
 	encryptedMessage := []byte("invalid data")
 

@@ -203,7 +203,7 @@ func TestSendBatchJSONMetrics(t *testing.T) {
 	}))
 	defer server.Close()
 
-	SendBatchJSONMetrics(mockMetrics, server.URL, "testKey")
+	SendBatchJSONMetrics(mockMetrics, server.URL, "testKey", "")
 
 	mockMetrics.AssertExpectations(t)
 }

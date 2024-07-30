@@ -41,7 +41,7 @@ func main() {
 		go func() {
 			for range reportTicker.C {
 				requests <- struct{}{}
-				request.SendBatchJSONMetrics(stats, config.GetAddress(), config.GetKey())
+				request.SendBatchJSONMetrics(stats, config.GetAddress(), config.GetKey(), config.GetCryptoKeyPath())
 				<-requests
 			}
 		}()

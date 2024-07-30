@@ -74,8 +74,9 @@ func run() error {
 	go diskService.CollectMetrics()
 
 	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
+	decryptMiddleware := middlewares.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log)
 
-	r := routes.InitRouter(handler, hashMiddleware)
+	r := routes.InitRouter(handler, hashMiddleware, decryptMiddleware)
 
 	fmt.Println(
 		"Build version: ", buildVersion, "\n",

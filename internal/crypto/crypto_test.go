@@ -124,6 +124,14 @@ func TestGenerateCrypto_TableDriven(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := &testLogger{}
 			err := GenerateCrypto(logger, tt.serverPrivateKeyPath, tt.agentPublicKeyPath)
+			defer func() {
+				if tt.serverPrivateKeyPath != "" {
+					err := os.Remove(tt.serverPrivateKeyPath)
+					if err != nil {
+						t.Fatalf("Failed to remove temp file for server private key: %v", err)
+					}
+				}
+			}()
 			if err == nil || !strings.Contains(err.Error(), tt.expectedError) {
 				t.Fatalf("Expected error containing '%v', got '%v'", tt.expectedError, err)
 			}
