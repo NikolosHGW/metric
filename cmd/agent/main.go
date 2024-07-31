@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/NikolosHGW/metric/internal/client/config"
 	"github.com/NikolosHGW/metric/internal/client/metrics"
 	"github.com/NikolosHGW/metric/internal/client/request"
 )
@@ -17,7 +18,7 @@ var (
 )
 
 func main() {
-	config := NewConfig()
+	config := config.NewConfig()
 
 	stats := metrics.NewMetrics()
 
@@ -40,7 +41,7 @@ func main() {
 		go func() {
 			for range reportTicker.C {
 				requests <- struct{}{}
-				request.SendBatchJSONMetrics(stats, config.GetAddress(), config.GetKey())
+				request.SendBatchJSONMetrics(stats, config.GetAddress(), config.GetKey(), config.GetCryptoKeyPath())
 				<-requests
 			}
 		}()
