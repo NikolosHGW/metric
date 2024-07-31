@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	agentConfig "github.com/NikolosHGW/metric/internal/client/config"
-	"github.com/NikolosHGW/metric/internal/crypto"
 	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
@@ -39,13 +37,6 @@ func run() error {
 
 	if err := logger.Initialize(config.LogLevel); err != nil {
 		return err
-	}
-
-	if config.GetCryptoKeyPath() != "" {
-		err := crypto.GenerateCrypto(logger.Log, config.GetCryptoKeyPath(), agentConfig.NewConfig().GetCryptoKeyPath())
-		if err != nil {
-			return fmt.Errorf("error with GenerateCrypto: %w", err)
-		}
 	}
 
 	database, err := db.InitDB(config.GetDBConnection())

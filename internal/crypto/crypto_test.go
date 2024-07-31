@@ -2,12 +2,11 @@ package crypto
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,118 +21,78 @@ func (l *testLogger) Info(msg string, fields ...zap.Field) {
 	l.logs = append(l.logs, msg)
 }
 
-func TestGenerateCrypto(t *testing.T) {
-	serverPrivateKeyFile, err := os.CreateTemp("", "server_private_key.pem")
-	if err != nil {
-		t.Fatalf("Failed to create temp file for server private key: %v", err)
-	}
-	defer func() {
-		err := os.Remove(serverPrivateKeyFile.Name())
-		if err != nil {
-			t.Fatalf("Failed to remove temp file for server private key: %v", err)
-		}
-	}()
-
-	agentPublicKeyFile, err := os.CreateTemp("", "agent_public_key.pem")
-	if err != nil {
-		t.Fatalf("Failed to create temp file for agent public key: %v", err)
-	}
-	defer func() {
-		err := os.Remove(agentPublicKeyFile.Name())
-		if err != nil {
-			t.Fatalf("Failed to remove temp file for agent public key: %v", err)
-		}
-	}()
-
-	logger := &testLogger{}
-
-	err = GenerateCrypto(logger, serverPrivateKeyFile.Name(), agentPublicKeyFile.Name())
-	if err != nil {
-		t.Fatalf("Failed GenerateCrypto: %v", err)
-	}
-
-	for _, log := range logger.logs {
-		cantGenerateKey := log == "cannot generate rsa key"
-		cantEncodePrivKey := log == "cannot encode private key"
-		cantWritePrivKeyToFile := log == "cannot write private key to file"
-		cantEncodePubKey := log == "cannot encode public key"
-		cantWritePubKeyToFile := log == "cannot write public key to file"
-
-		if cantGenerateKey || cantEncodePrivKey || cantWritePrivKeyToFile || cantEncodePubKey || cantWritePubKeyToFile {
-			t.Fatalf("Error occurred during GenerateCrypto execution: %s", log)
-		}
-	}
-
-	privateKeyData, err := os.ReadFile(serverPrivateKeyFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to read server private key file: %v", err)
-	}
-
-	block, _ := pem.Decode(privateKeyData)
-	if block == nil || block.Type != "RSA PRIVATE KEY" {
-		t.Fatalf("Failed to decode PEM block containing private key")
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse private key: %v", err)
-	}
-
-	publicKeyData, err := os.ReadFile(agentPublicKeyFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to read agent public key file: %v", err)
-	}
-
-	block, _ = pem.Decode(publicKeyData)
-	if block == nil || block.Type != "RSA PUBLIC KEY" {
-		t.Fatalf("Failed to decode PEM block containing public key")
-	}
-
-	publicKey, err := x509.ParsePKCS1PublicKey(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse public key: %v", err)
-	}
-
-	if !publicKey.Equal(&privateKey.PublicKey) {
-		t.Fatalf("Public key does not match private key's public key")
-	}
-}
-
-func TestGenerateCrypto_TableDriven(t *testing.T) {
+func TestGeneratePrivateKey(t *testing.T) {
 	tests := []struct {
 		name                 string
 		serverPrivateKeyPath string
-		agentPublicKeyPath   string
-		expectedError        string
+		expectError          bool
 	}{
 		{
-			name:                 "Пустые пути",
-			serverPrivateKeyPath: "",
-			agentPublicKeyPath:   "",
-			expectedError:        "cannot write private key to file",
+			name:                 "Successful key generation",
+			serverPrivateKeyPath: "test_private_key.pem",
+			expectError:          false,
 		},
 		{
-			name:                 "Только приватный путь",
-			serverPrivateKeyPath: "testfile",
-			agentPublicKeyPath:   "",
-			expectedError:        "cannot write public key to file",
+			name:                 "Invalid file path",
+			serverPrivateKeyPath: "",
+			expectError:          true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := &testLogger{}
-			err := GenerateCrypto(logger, tt.serverPrivateKeyPath, tt.agentPublicKeyPath)
-			defer func() {
-				if tt.serverPrivateKeyPath != "" {
-					err := os.Remove(tt.serverPrivateKeyPath)
-					if err != nil {
-						t.Fatalf("Failed to remove temp file for server private key: %v", err)
-					}
+			l := &testLogger{}
+
+			err := GeneratePrivateKey(l, tt.serverPrivateKeyPath)
+			if (err != nil) != tt.expectError {
+				t.Errorf("GeneratePrivateKey() error = %v, expectError %v", err, tt.expectError)
+			}
+
+			if !tt.expectError {
+				err = os.Remove(tt.serverPrivateKeyPath)
+				if err != nil {
+					t.Fatalf("Failed to remove serverPrivateKeyPath: %v", err)
 				}
-			}()
-			if err == nil || !strings.Contains(err.Error(), tt.expectedError) {
-				t.Fatalf("Expected error containing '%v', got '%v'", tt.expectedError, err)
+			}
+		})
+	}
+}
+
+func TestGeneratePublicKey(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 4096)
+
+	tests := []struct {
+		name               string
+		privateKey         *rsa.PrivateKey
+		agentPublicKeyPath string
+		expectError        bool
+	}{
+		{
+			name:               "Successful key generation",
+			privateKey:         privateKey,
+			agentPublicKeyPath: "test_public_key.pem",
+			expectError:        false,
+		},
+		{
+			name:               "Invalid file path",
+			privateKey:         privateKey,
+			agentPublicKeyPath: "",
+			expectError:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := GeneratePublicKey(tt.privateKey, tt.agentPublicKeyPath)
+			if (err != nil) != tt.expectError {
+				t.Errorf("GeneratePublicKey() error = %v, expectError %v", err, tt.expectError)
+			}
+
+			if !tt.expectError {
+				err = os.Remove(tt.agentPublicKeyPath)
+				if err != nil {
+					t.Fatalf("Failed to remove agentPublicKeyPath: %v", err)
+				}
 			}
 		})
 	}
@@ -152,21 +111,9 @@ func TestLoadPrivateKey_Success(t *testing.T) {
 		}
 	}()
 
-	publicKeyPath := "test_public_key.pem"
-	publicKeyFile, err := os.CreateTemp("", publicKeyPath)
-	if err != nil {
-		t.Fatalf("Failed to create temp file for public key: %v", err)
-	}
-	defer func() {
-		err := os.Remove(publicKeyFile.Name())
-		if err != nil {
-			t.Fatalf("Failed to remove temp file for public key: %v", err)
-		}
-	}()
-
 	logger := &testLogger{}
 
-	err = GenerateCrypto(logger, serverPrivateKeyFile.Name(), publicKeyFile.Name())
+	err = GeneratePrivateKey(logger, serverPrivateKeyFile.Name())
 	if err != nil {
 		t.Fatalf("Failed GenerateCrypto: %v", err)
 	}
@@ -227,12 +174,10 @@ func TestLoadPrivateKey_CorruptedFile(t *testing.T) {
 }
 
 func TestLoadPublicKey(t *testing.T) {
-	privateKeyPath := "server_private_key.pem"
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 4096)
 	publicKeyPath := "agent_public_key.pem"
 
-	logger := &testLogger{}
-
-	err := GenerateCrypto(logger, privateKeyPath, publicKeyPath)
+	err := GeneratePublicKey(privateKey, publicKeyPath)
 	if err != nil {
 		t.Fatalf("Failed to generate keys: %v", err)
 	}
@@ -246,10 +191,6 @@ func TestLoadPublicKey(t *testing.T) {
 		t.Fatal("Public key is nil")
 	}
 
-	err = os.Remove(privateKeyPath)
-	if err != nil {
-		t.Fatalf("Cannot private remove file: %v", err)
-	}
 	err = os.Remove(publicKeyPath)
 	if err != nil {
 		t.Fatalf("Cannot public remove file: %v", err)
@@ -339,32 +280,11 @@ func TestLoadPublicKey_InvalidKeyFormat(t *testing.T) {
 }
 
 func TestEncryptData(t *testing.T) {
-	serverPrivateKeyFile, err := os.CreateTemp("", "server_private_key.pem")
+	// Генерация ключей для тестов
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	assert.NoError(t, err)
-	defer func() {
-		err := os.Remove(serverPrivateKeyFile.Name())
-		if err != nil {
-			t.Fatalf("Failed to remove temp file serverPrivateKeyFile: %v", err)
-		}
-	}()
 
-	agentPublicKeyFile, err := os.CreateTemp("", "agent_public_key.pem")
-	assert.NoError(t, err)
-	defer func() {
-		err := os.Remove(agentPublicKeyFile.Name())
-		if err != nil {
-			t.Fatalf("Failed to remove temp file agentPublicKeyFile: %v", err)
-		}
-	}()
-
-	logger := &testLogger{}
-	err = GenerateCrypto(logger, serverPrivateKeyFile.Name(), agentPublicKeyFile.Name())
-	if err != nil {
-		t.Fatalf("Failed GenerateCrypto: %v", err)
-	}
-
-	publicKey, err := LoadPublicKey(agentPublicKeyFile.Name())
-	assert.NoError(t, err)
+	publicKey := &privateKey.PublicKey
 
 	tests := []struct {
 		name    string
@@ -384,7 +304,7 @@ func TestEncryptData(t *testing.T) {
 		{
 			name:    "Большие данные",
 			data:    make([]byte, 1000),
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 
@@ -396,7 +316,12 @@ func TestEncryptData(t *testing.T) {
 				assert.Nil(t, encryptedData)
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, encryptedData)
+				if len(tt.data) == 0 {
+					assert.Equal(t, []byte{}, encryptedData)
+				} else {
+					assert.NotNil(t, encryptedData)
+					assert.Greater(t, len(encryptedData), 0)
+				}
 			}
 		})
 	}
