@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/db"
 	"github.com/NikolosHGW/metric/internal/server/handlers"
 	"github.com/NikolosHGW/metric/internal/server/logger"
@@ -32,7 +33,7 @@ func main() {
 }
 
 func run() error {
-	config := NewConfig()
+	config := config.NewConfig()
 
 	if err := logger.Initialize(config.LogLevel); err != nil {
 		return err
@@ -64,8 +65,9 @@ func run() error {
 	go diskService.CollectMetrics()
 
 	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
+	decryptMiddleware := middlewares.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log)
 
-	r := routes.InitRouter(handler, hashMiddleware)
+	r := routes.InitRouter(handler, hashMiddleware, decryptMiddleware)
 
 	fmt.Println(
 		"Build version: ", buildVersion, "\n",
