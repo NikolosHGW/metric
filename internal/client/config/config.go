@@ -1,18 +1,21 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
+	"os"
 
 	"github.com/caarlos0/env"
 )
 
 type config struct {
-	Address        string `env:"ADDRESS"`
+	Address        string `env:"ADDRESS" json:"address,omitempty"`
 	Key            string `env:"KEY"`
-	CryptoKey      string `env:"CRYPTO_KEY"`
-	PollInterval   int    `env:"POLL_INTERVAL"`
-	ReportInterval int    `env:"REPORT_INTERVAL"`
+	CryptoKey      string `env:"CRYPTO_KEY" json:"crypto_key,omitempty"`
+	ConfigPath     string `env:"CONFIG"`
+	PollInterval   int    `env:"POLL_INTERVAL" json:"poll_interval,omitempty"`
+	ReportInterval int    `env:"REPORT_INTERVAL" json:"report_interval,omitempty"`
 	RateLimit      int    `end:"RATE_LIMIT"`
 }
 
@@ -54,6 +57,7 @@ func (c *config) parseFlags() {
 	flag.StringVar(&c.Key, "k", "", "secret key for hash")
 	flag.IntVar(&c.RateLimit, "l", 10, "Rate limit for outgoing requests")
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "path to public crypto key")
+	flag.StringVar(&c.ConfigPath, "c", "", "path to config file")
 
 	flag.Parse()
 }
@@ -63,6 +67,39 @@ func NewConfig() *config {
 
 	cfg.parseFlags()
 	cfg.InitEnv()
+	cfg.loadFromJSON()
 
 	return cfg
+}
+
+func (c *config) loadFromJSON() {
+	if c.ConfigPath == "" {
+		return
+	}
+
+	fileContent, err := os.ReadFile(c.ConfigPath)
+	if err != nil {
+		log.Println("could not read config file: %w", err)
+	}
+
+	tempConfig := config{}
+	if err = json.Unmarshal(fileContent, &tempConfig); err != nil {
+		log.Println("invalid config file content: %w", err)
+	}
+
+	if c.Address == "" && tempConfig.Address != "" {
+		c.Address = tempConfig.Address
+	}
+
+	if c.CryptoKey == "" && tempConfig.CryptoKey != "" {
+		c.CryptoKey = tempConfig.CryptoKey
+	}
+
+	if c.PollInterval == 2 && tempConfig.PollInterval != 2 {
+		c.PollInterval = tempConfig.PollInterval
+	}
+
+	if c.ReportInterval == 10 && tempConfig.ReportInterval != 10 {
+		c.ReportInterval = tempConfig.ReportInterval
+	}
 }
