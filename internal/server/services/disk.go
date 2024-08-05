@@ -1,6 +1,9 @@
 package services
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type DiskStorage interface {
 	WriteToDisk()
@@ -22,12 +25,19 @@ func NewDiskService(diskStorage DiskStorage, storeInterval int, restore bool) *D
 	}
 }
 
-func (dService DiskService) CollectMetrics() {
+func (dService *DiskService) CollectMetrics(ctx context.Context) {
 	if dService.diskStrg.CanWriteToDisk() {
-		for {
-			dService.diskStrg.WriteToDisk()
+		ticker := time.NewTicker(time.Duration(dService.storeInterval) * time.Second)
+		defer ticker.Stop()
 
-			time.Sleep(time.Duration(dService.storeInterval) * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				dService.diskStrg.WriteToDisk()
+			case <-ctx.Done():
+				dService.diskStrg.WriteToDisk()
+				return
+			}
 		}
 	}
 }

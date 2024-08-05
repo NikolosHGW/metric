@@ -24,7 +24,11 @@ type Middleware interface {
 	WithHash(http.Handler) http.Handler
 }
 
-func InitRouter(handler Handler, myMiddleware Middleware) *chi.Mux {
+type DecryptMiddleware interface {
+	DecryptHandler(next http.Handler) http.Handler
+}
+
+func InitRouter(handler Handler, myMiddleware Middleware, decryptMiddleware DecryptMiddleware) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.WithLogging)
@@ -33,7 +37,7 @@ func InitRouter(handler Handler, myMiddleware Middleware) *chi.Mux {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetMetrics)
 		r.Get("/ping", handler.PingDB)
-		r.With(myMiddleware.WithHash).Post("/updates/", handler.UpsertMetrics)
+		r.With(myMiddleware.WithHash, decryptMiddleware.DecryptHandler).Post("/updates/", handler.UpsertMetrics)
 
 		update.InitUpdateRoutes(r, handler.SetMetric, handler.SetJSONMetric)
 		value.InitValueRoutes(r, handler.GetValueMetric, handler.GetMetric)
