@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func TestDiskService_CollectMetrics(t *testing.T) {
 
 	diskService := NewDiskService(mockDiskStorage, 1, false)
 
-	go diskService.CollectMetrics()
+	go diskService.CollectMetrics(context.Background())
 	time.Sleep(3 * time.Second)
 
 	mockDiskStorage.AssertCalled(t, "WriteToDisk")

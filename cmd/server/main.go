@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/db"
@@ -62,7 +67,11 @@ func run() error {
 	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
-	go diskService.CollectMetrics()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go diskService.CollectMetrics(ctx)
 
 	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
 	decryptMiddleware := middlewares.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log)
@@ -77,5 +86,39 @@ func run() error {
 
 	logger.Log.Info("Running server", zap.String("address", config.Address))
 
-	return http.ListenAndServe(config.Address, r)
+	server := &http.Server{
+		Addr:    config.Address,
+		Handler: r,
+	}
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	errChan := make(chan error, 1)
+
+	go func() {
+		errChan <- server.ListenAndServe()
+	}()
+
+	select {
+	case sig := <-signalChan:
+		logger.Log.Info("Received signal, shutting down", zap.String("signal", sig.String()))
+	case err := <-errChan:
+		if err != nil && err != http.ErrServerClosed {
+			return fmt.Errorf("server error: %w", err)
+		}
+	}
+
+	ctxShutDown, cancelShutDown := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelShutDown()
+
+	cancel()
+
+	if err := server.Shutdown(ctxShutDown); err != nil {
+		return fmt.Errorf("server shutdown failed: %w", err)
+	}
+
+	logger.Log.Info("Server exited gracefully")
+
+	return nil
 }
