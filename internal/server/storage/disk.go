@@ -31,7 +31,7 @@ func NewProducer(fileName string) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) WriteMetric(metric *models.Metrics) error {
+func (p *Producer) WriteMetric(metric models.Metrics) error {
 	return p.encoder.Encode(&metric)
 }
 
@@ -100,7 +100,7 @@ func (ds DiskStorage) WriteToDisk() {
 	}()
 
 	for _, metric := range ds.strg.GetMetricsModels(context.Background()) {
-		if err := Producer.WriteMetric(&metric); err != nil {
+		if err := Producer.WriteMetric(metric); err != nil {
 			ds.log.Info("cannot encode", zap.Error(err))
 		}
 	}

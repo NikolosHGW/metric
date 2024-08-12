@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NikolosHGW/metric/internal/crypto"
 	"github.com/NikolosHGW/metric/internal/models"
 )
 
@@ -187,7 +188,7 @@ func SendJSONMetrics(ctx context.Context, m ClientMetrics, reportInterval int, h
 	}
 }
 
-func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
+func SendBatchJSONMetrics(m ClientMetrics, host, key, publicKeyPath string) {
 	metricTypeMap := GetMetricTypeMap()
 	metricsBatch := make([]models.Metrics, 0, len(m.GetMetrics()))
 
@@ -207,6 +208,22 @@ func SendBatchJSONMetrics(m ClientMetrics, host, key string) {
 	if err != nil {
 		log.Println("metric/internal/client/util/util.go SendBatchMetrics cannot Marshal", err)
 		return
+	}
+
+	if publicKeyPath != "" {
+		publicKey, err := crypto.LoadPublicKey(publicKeyPath)
+		if err != nil {
+			log.Println("cannot load public key", err)
+			return
+		}
+
+		encryptedData, err := crypto.EncryptData(publicKey, data)
+		if err != nil {
+			log.Println("cannot encrypt data", err)
+			return
+		}
+
+		data = encryptedData
 	}
 
 	hash := hash(data, key)
