@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -249,6 +250,10 @@ func SendBatchJSONMetrics(m ClientMetrics, host, key, publicKeyPath string) {
 	nr.Header.Set("Content-Type", "application/json")
 	nr.Header.Set("Content-Encoding", "gzip")
 	nr.Header.Set("Accept-Encoding", "gzip")
+	realIP := getOutboundIP()
+	if realIP != "" {
+		nr.Header.Set("X-Real-IP", realIP)
+	}
 	if hash != "" {
 		nr.Header.Set("HashSHA256", hash)
 	}
@@ -315,4 +320,21 @@ func hash(data []byte, key string) string {
 	}
 
 	return ""
+}
+
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Println("Cannot get outbound IP:", err)
+		return ""
+	}
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Println("err close UDP connection: ", err)
+		}
+	}()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String()
 }

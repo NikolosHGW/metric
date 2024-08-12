@@ -75,8 +75,9 @@ func run() error {
 
 	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
 	decryptMiddleware := middlewares.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log)
+	checkIP := middlewares.NewCheckIP(config.GetTrustedSubnet(), logger.Log)
 
-	r := routes.InitRouter(handler, hashMiddleware, decryptMiddleware)
+	r := routes.InitRouter(handler, hashMiddleware, decryptMiddleware, checkIP)
 
 	fmt.Println(
 		"Build version: ", buildVersion, "\n",
