@@ -59,6 +59,11 @@ func NewConfig() *config {
 	return cfg
 }
 
+// GetAddress геттер для хоста
+func (c config) GetAddress() string {
+	return c.Address
+}
+
 // GetStoreInterval геттер для интервала хранения
 func (c config) GetStoreInterval() int {
 	return c.StoreInterval
