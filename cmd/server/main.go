@@ -63,7 +63,6 @@ func run() error {
 		databaseStrg := storage.NewDBStorage(database, logger.Log)
 		metricService = services.NewMetricService(databaseStrg)
 	}
-	// handler := handlers.NewHandler(metricService, logger.Log)
 	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
@@ -73,10 +72,6 @@ func run() error {
 
 	go diskService.CollectMetrics(ctx)
 
-	// hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
-	// decryptMiddleware := middlewares.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log)
-	// checkIP := middlewares.NewCheckIP(config.GetTrustedSubnet(), logger.Log)
-
 	fmt.Println(
 		"Build version: ", buildVersion, "\n",
 		"Build date: ", buildDate, "\n",
@@ -84,11 +79,6 @@ func run() error {
 	)
 
 	logger.Log.Info("Running server", zap.String("address", config.Address))
-
-	// server := &http.Server{
-	// 	Addr:    config.Address,
-	// 	Handler: r,
-	// }
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
