@@ -141,11 +141,13 @@ func startGRPCServer(config configer, metricService services.MetricService, log 
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptor.UnaryLoggingInterceptor),
-		grpc.UnaryInterceptor(interceptor.UnaryGzipInterceptor),
-		grpc.UnaryInterceptor(interceptor.NewHashMiddleware(config.GetKey()).UnaryHashInterceptor),
-		grpc.UnaryInterceptor(interceptor.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log).UnaryDecryptInterceptor),
-		grpc.UnaryInterceptor(interceptor.NewCheckIP(config.GetTrustedSubnet(), logger.Log).UnaryCheckIPInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptor.UnaryLoggingInterceptor,
+			interceptor.UnaryGzipInterceptor,
+			interceptor.NewHashMiddleware(config.GetKey()).UnaryHashInterceptor,
+			interceptor.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log).UnaryDecryptInterceptor,
+			interceptor.NewCheckIP(config.GetTrustedSubnet(), logger.Log).UnaryCheckIPInterceptor,
+		),
 	)
 	proto.RegisterMetricServiceServer(grpcServer, grpcserver.NewMetricServiceServer(metricService, logger.Log))
 

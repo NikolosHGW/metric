@@ -15,8 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NikolosHGW/metric/internal/client/metrics"
 	"github.com/NikolosHGW/metric/internal/crypto"
 	"github.com/NikolosHGW/metric/internal/models"
+	"github.com/NikolosHGW/metric/internal/proto"
 )
 
 type ClientMetrics interface {
@@ -337,4 +339,32 @@ func getOutboundIP() string {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP.String()
+}
+
+func SendMetricsGRPC(ctx context.Context, client proto.MetricServiceClient, stats *metrics.Metrics) {
+	metricTypeMap := GetMetricTypeMap()
+	var metricsBatch []*proto.Metric
+
+	for k, v := range stats.GetMetrics() {
+		delta := GetIntValue(metricTypeMap[k], v)
+		value := GetFloatValue(metricTypeMap[k], v)
+		metric := &proto.Metric{
+			Id:    k,
+			Type:  metricTypeMap[k],
+			Delta: delta,
+			Value: value,
+		}
+		metricsBatch = append(metricsBatch, metric)
+	}
+
+	req := &proto.UpsertMetricRequest{
+		Metrics: metricsBatch,
+	}
+
+	_, err := client.UpsertMetrics(ctx, req)
+	if err != nil {
+		log.Printf("could not upsert metrics: %v", err)
+	} else {
+		log.Println("Metrics successfully upserted via gRPC")
+	}
 }
