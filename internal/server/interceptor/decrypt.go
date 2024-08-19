@@ -34,7 +34,7 @@ func NewDecryptMiddleware(privateKeyPath string, logger customLogger) *DecryptMi
 func (dm *DecryptMiddleware) UnaryDecryptInterceptor(
 	ctx context.Context,
 	req interface{},
-	info *grpc.UnaryServerInfo,
+	_ *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler,
 ) (interface{}, error) {
 	if dm.privateKeyPath == "" {

@@ -337,7 +337,11 @@ func getOutboundIP() string {
 		}
 	}()
 
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		log.Println("Unexpected address type; not *net.UDPAddr")
+		return ""
+	}
 	return localAddr.IP.String()
 }
 

@@ -9,6 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "net/http/pprof"
+
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+
 	"github.com/NikolosHGW/metric/internal/proto"
 	"github.com/NikolosHGW/metric/internal/server/config"
 	"github.com/NikolosHGW/metric/internal/server/db"
@@ -17,10 +22,6 @@ import (
 	"github.com/NikolosHGW/metric/internal/server/logger"
 	"github.com/NikolosHGW/metric/internal/server/services"
 	"github.com/NikolosHGW/metric/internal/server/storage"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-
-	_ "net/http/pprof"
 )
 
 const defaultTagValue = "N/A"
