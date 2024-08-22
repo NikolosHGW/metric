@@ -9,13 +9,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/NikolosHGW/metric/internal/client/metrics"
 	"github.com/NikolosHGW/metric/internal/crypto"
 	"github.com/NikolosHGW/metric/internal/models"
+	"github.com/NikolosHGW/metric/internal/proto"
 )
 
 type ClientMetrics interface {
@@ -249,6 +252,10 @@ func SendBatchJSONMetrics(m ClientMetrics, host, key, publicKeyPath string) {
 	nr.Header.Set("Content-Type", "application/json")
 	nr.Header.Set("Content-Encoding", "gzip")
 	nr.Header.Set("Accept-Encoding", "gzip")
+	realIP := getOutboundIP()
+	if realIP != "" {
+		nr.Header.Set("X-Real-IP", realIP)
+	}
 	if hash != "" {
 		nr.Header.Set("HashSHA256", hash)
 	}
@@ -315,4 +322,53 @@ func hash(data []byte, key string) string {
 	}
 
 	return ""
+}
+
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Println("Cannot get outbound IP:", err)
+		return ""
+	}
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Println("err close UDP connection: ", err)
+		}
+	}()
+
+	localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		log.Println("Unexpected address type; not *net.UDPAddr")
+		return ""
+	}
+	return localAddr.IP.String()
+}
+
+func SendMetricsGRPC(ctx context.Context, client proto.MetricServiceClient, stats *metrics.Metrics) {
+	metricTypeMap := GetMetricTypeMap()
+	var metricsBatch []*proto.Metric
+
+	for k, v := range stats.GetMetrics() {
+		delta := GetIntValue(metricTypeMap[k], v)
+		value := GetFloatValue(metricTypeMap[k], v)
+		metric := &proto.Metric{
+			Id:    k,
+			Type:  metricTypeMap[k],
+			Delta: delta,
+			Value: value,
+		}
+		metricsBatch = append(metricsBatch, metric)
+	}
+
+	req := &proto.UpsertMetricRequest{
+		Metrics: metricsBatch,
+	}
+
+	_, err := client.UpsertMetrics(ctx, req)
+	if err != nil {
+		log.Printf("could not upsert metrics: %v", err)
+	} else {
+		log.Println("Metrics successfully upserted via gRPC")
+	}
 }

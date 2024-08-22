@@ -4,23 +4,24 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/NikolosHGW/metric/internal/server/config"
-	"github.com/NikolosHGW/metric/internal/server/db"
-	"github.com/NikolosHGW/metric/internal/server/handlers"
-	"github.com/NikolosHGW/metric/internal/server/logger"
-	"github.com/NikolosHGW/metric/internal/server/middlewares"
-	"github.com/NikolosHGW/metric/internal/server/routes"
-	"github.com/NikolosHGW/metric/internal/server/services"
-	"github.com/NikolosHGW/metric/internal/server/storage"
-	"go.uber.org/zap"
 
 	_ "net/http/pprof"
+
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+
+	"github.com/NikolosHGW/metric/internal/proto"
+	"github.com/NikolosHGW/metric/internal/server/config"
+	"github.com/NikolosHGW/metric/internal/server/db"
+	"github.com/NikolosHGW/metric/internal/server/grpcserver"
+	"github.com/NikolosHGW/metric/internal/server/interceptor"
+	"github.com/NikolosHGW/metric/internal/server/logger"
+	"github.com/NikolosHGW/metric/internal/server/services"
+	"github.com/NikolosHGW/metric/internal/server/storage"
 )
 
 const defaultTagValue = "N/A"
@@ -63,7 +64,6 @@ func run() error {
 		databaseStrg := storage.NewDBStorage(database, logger.Log)
 		metricService = services.NewMetricService(databaseStrg)
 	}
-	handler := handlers.NewHandler(metricService, logger.Log)
 	diskStrg := storage.NewDiskStorage(strg, logger.Log, config.GetFileStoragePath())
 	diskService := services.NewDiskService(diskStrg, config.GetStoreInterval(), config.GetRestore())
 	diskService.FillMetricStorage()
@@ -73,11 +73,6 @@ func run() error {
 
 	go diskService.CollectMetrics(ctx)
 
-	hashMiddleware := middlewares.NewHashMiddleware(config.GetKey())
-	decryptMiddleware := middlewares.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log)
-
-	r := routes.InitRouter(handler, hashMiddleware, decryptMiddleware)
-
 	fmt.Println(
 		"Build version: ", buildVersion, "\n",
 		"Build date: ", buildDate, "\n",
@@ -86,39 +81,74 @@ func run() error {
 
 	logger.Log.Info("Running server", zap.String("address", config.Address))
 
-	server := &http.Server{
-		Addr:    config.Address,
-		Handler: r,
-	}
-
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	errChan := make(chan error, 1)
+	grpcServerChan := make(chan *grpc.Server)
 
 	go func() {
-		errChan <- server.ListenAndServe()
+		grpcServer, err := startGRPCServer(config, *metricService, logger.Log)
+		if err != nil {
+			errChan <- err
+		}
+		grpcServerChan <- grpcServer
 	}()
 
 	select {
 	case sig := <-signalChan:
 		logger.Log.Info("Received signal, shutting down", zap.String("signal", sig.String()))
 	case err := <-errChan:
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && err != grpc.ErrServerStopped {
 			return fmt.Errorf("server error: %w", err)
 		}
 	}
 
-	ctxShutDown, cancelShutDown := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelShutDown()
-
 	cancel()
 
-	if err := server.Shutdown(ctxShutDown); err != nil {
-		return fmt.Errorf("server shutdown failed: %w", err)
-	}
+	grpcServer := <-grpcServerChan
+	grpcServer.GracefulStop()
 
 	logger.Log.Info("Server exited gracefully")
 
 	return nil
+}
+
+type configer interface {
+	GetAddress() string
+	GetKey() string
+	GetCryptoKeyPath() string
+	GetTrustedSubnet() string
+}
+
+type customLogger interface {
+	Info(string, ...zap.Field)
+}
+
+func startGRPCServer(config configer, metricService services.MetricService, log customLogger) (*grpc.Server, error) {
+	lis, err := net.Listen("tcp", config.GetAddress())
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen: %w", err)
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interceptor.UnaryLoggingInterceptor,
+			interceptor.UnaryGzipInterceptor,
+			interceptor.NewHashMiddleware(config.GetKey()).UnaryHashInterceptor,
+			interceptor.NewDecryptMiddleware(config.GetCryptoKeyPath(), logger.Log).UnaryDecryptInterceptor,
+			interceptor.NewCheckIP(config.GetTrustedSubnet(), logger.Log).UnaryCheckIPInterceptor,
+		),
+	)
+	proto.RegisterMetricServiceServer(grpcServer, grpcserver.NewMetricServiceServer(metricService, logger.Log))
+
+	log.Info("Starting gRPC server at", zap.String("address", config.GetAddress()))
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil && err != grpc.ErrServerStopped {
+			log.Info("gRPC server stopped with error", zap.Error(err))
+		}
+	}()
+
+	return grpcServer, nil
 }

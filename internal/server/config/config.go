@@ -22,6 +22,7 @@ type config struct {
 	Key             string `env:"KEY"`
 	CryptoKey       string `env:"CRYPTO_KEY" json:"crypto_key,omitempty"`
 	ConfigPath      string `env:"CONFIG"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
 	StoreInterval   int    `env:"STORE_INTERVAL" json:"store_interval,omitempty"`
 	Restore         bool   `env:"RESTORE" json:"restore,omitempty"`
 }
@@ -43,6 +44,7 @@ func (c *config) parseFlags() {
 	flag.StringVar(&c.Key, "k", "", "secret key for hash")
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "path to private crypto key")
 	flag.StringVar(&c.ConfigPath, "c", "", "path to config file")
+	flag.StringVar(&c.TrustedSubnet, "t", "", "trusted subnet CIDR")
 	flag.Parse()
 }
 
@@ -55,6 +57,11 @@ func NewConfig() *config {
 	cfg.loadFromJSON()
 
 	return cfg
+}
+
+// GetAddress геттер для хоста
+func (c config) GetAddress() string {
+	return c.Address
 }
 
 // GetStoreInterval геттер для интервала хранения
@@ -85,6 +92,11 @@ func (c config) GetKey() string {
 // GetCryptoKeyPath геттер для пути к приватному ключу шифрования
 func (c config) GetCryptoKeyPath() string {
 	return c.CryptoKey
+}
+
+// GetTrustedSubnet геттер для CIDR
+func (c config) GetTrustedSubnet() string {
+	return c.TrustedSubnet
 }
 
 func (c *config) loadFromJSON() {
@@ -124,5 +136,9 @@ func (c *config) loadFromJSON() {
 
 	if c.CryptoKey == "" && tempConfig.CryptoKey != "" {
 		c.CryptoKey = tempConfig.CryptoKey
+	}
+
+	if c.TrustedSubnet == "" && tempConfig.TrustedSubnet != "" {
+		c.TrustedSubnet = tempConfig.TrustedSubnet
 	}
 }

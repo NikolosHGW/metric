@@ -6,18 +6,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-type StaticRulesConfig struct {
+type Rules struct {
 	RuleSet map[string]struct{}
 }
 
-func NewStaticRulesConfig() *StaticRulesConfig {
+func NewStaticRulesConfig() *Rules {
 	viper.SetConfigName("staticchecks")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("ошибка при чтении конфигурационного файла: %w", err))
 	}
-	cnfg := &StaticRulesConfig{RuleSet: make(map[string]struct{})}
+	cnfg := &Rules{RuleSet: make(map[string]struct{})}
 	untypedChecks, ok := viper.Get("checks").([]any)
 	if !ok {
 		panic(fmt.Errorf("неверное содержимое конфигурации в поле checks"))
